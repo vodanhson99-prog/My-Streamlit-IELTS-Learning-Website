@@ -6,16 +6,16 @@ IELTS practice website built with native HTML, Tailwind CSS, and a small Python 
 
 - Bento-style dashboard in existing forest-green palette
 - Reading practice with instant scoring
-- Writing practice with local heuristic feedback or Groq AI feedback
+- Writing practice with local heuristic feedback or server-side AI feedback
 - IELTS criterion coaching and progress charts
-- Explain Bot powered by Groq
+- AI-powered Explain Bot
 - Responsive desktop sidebar and mobile bottom navigation
 - Keyboard focus states, skip link, accessible labels, and reduced-motion support
 
 ## Requirements
 
 - Python 3.9+
-- Groq API key optional; required for AI features
+- Server-side AI API key optional; required for AI features
 
 ## Run locally on Windows
 
@@ -43,6 +43,8 @@ python -m pip install -r requirements.txt
 
 ```dotenv
 GROQ_API_KEY=your_groq_api_key
+AI_API_URL=https://api.groq.com/openai/v1/chat/completions
+AI_MODEL=your_server_side_model_name
 ```
 
 4. Start web server:
@@ -57,5 +59,5 @@ python website.py
 
 - Tailwind loads from `https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4` during development.
 - Progress stays in local `ielts_progress.json`.
-- Browser-entered Groq keys stay in `sessionStorage` and are not written to disk.
+- AI provider, model, and API key stay server-side through `.env`.
 - `website.py` serves HTML and JSON API routes. No Streamlit dependency remains.

@@ -22,8 +22,8 @@ INDEX_FILE = ROOT / "index.html"
 DATA_FILE = ROOT / "ielts_progress.json"
 HOST = "127.0.0.1"
 PORT = 8501
-GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "llama-3.3-70b-versatile"
+AI_API_URL = os.getenv("AI_API_URL", "").strip()
+AI_MODEL = os.getenv("AI_MODEL", "").strip()
 
 READING_PASSAGES = [
     {
@@ -141,11 +141,13 @@ def heuristic_writing_feedback(essay, task_type="task2"):
 
 
 def groq_request(system_prompt, user_prompt, api_key, max_tokens, temperature):
+    if not AI_API_URL or not AI_MODEL:
+        raise RuntimeError("AI provider is not configured on server.")
     response = requests.post(
-        GROQ_API_URL,
+        AI_API_URL,
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         json={
-            "model": GROQ_MODEL,
+            "model": AI_MODEL,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
@@ -191,8 +193,8 @@ def explain_answer(question, user_answer, correct_answer, api_key):
     return groq_request(system_prompt, user_prompt, api_key, 400, 0.4)
 
 
-def api_key_from(payload):
-    return (payload.get("api_key") or os.getenv("GROQ_API_KEY") or "").strip()
+def api_key_from(_payload):
+    return os.getenv("GROQ_API_KEY", "").strip()
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -283,7 +285,7 @@ class Handler(BaseHTTPRequestHandler):
                             ],
                             "overall_tip": ai_result.get("overall_tip", ""),
                         }
-                    except (requests.RequestException, json.JSONDecodeError, KeyError, TypeError) as error:
+                    except (requests.RequestException, json.JSONDecodeError, KeyError, TypeError, RuntimeError) as error:
                         result = {"fallback_error": str(error)}
 
                 if result is None or "fallback_error" in result:
@@ -296,7 +298,7 @@ class Handler(BaseHTTPRequestHandler):
                             ["Word count", f"{heuristic['word_count']} words ({heuristic['sentence_count']} sentences)"],
                             ["Heuristic notes", " · ".join(heuristic["notes"])],
                         ],
-                        "overall_tip": "Heuristic is rough — set a Groq key for full IELTS-criteria feedback.",
+                        "overall_tip": "Heuristic is rough — server AI grading provides full IELTS-criteria feedback.",
                         "fallback_error": result.get("fallback_error") if result else None,
                     }
 
@@ -317,7 +319,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/explain":
                 key = api_key_from(payload)
                 if not key:
-                    self.send_json({"error": "Add your Groq API key to use Explain Bot."}, 400)
+                    self.send_json({"error": "AI tutor is not configured on the server."}, 503)
                     return
                 if not str(payload.get("question", "")).strip() or not str(payload.get("correct_answer", "")).strip():
                     self.send_json({"error": "Fill in at least the question and the correct answer."}, 400)
@@ -331,6 +333,9 @@ class Handler(BaseHTTPRequestHandler):
                 save_progress(default_progress())
                 self.send_json({"progress": default_progress()})
                 return
+        except RuntimeError as error:
+            self.send_json({"error": str(error)}, 503)
+            return
         except requests.RequestException as error:
             self.send_json({"error": f"Network error: {error}"}, 502)
             return
