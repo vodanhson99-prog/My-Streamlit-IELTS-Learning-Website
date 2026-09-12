@@ -1,26 +1,61 @@
-# My-FastAPI-IELTS-Learning-Website
-Working on an IELTS learning website that can make real impact
+# My Streamlit IELTS Learning Website
+
+IELTS practice website built with Streamlit.
+
 ## Features
+
 - Reading practice
-- Writing practice
+- Writing practice with AI feedback
 - Progress tracking
-- AI coaching/chatbot
-## Tech Stack
-- Python
-- FastAPI
-- Dotenv
-- Unicvron
-- Ollama AI
-- React.js
+- IELTS coaching chatbot
+
+## Requirements
+
+- Python 3.9+
+- Groq API key (optional, required for AI features)
+
+## Run locally on Windows
+
+1. Clone the repository and open it:
+
+```powershell
+git clone https://github.com/capncook-cookin/My-Streamlit-IELTS-Learning-Website.git
+cd My-Streamlit-IELTS-Learning-Website
+```
+
+2. Create and activate `.venv` using the included script:
+
+```powershell
+.\venv.ps1
+```
+
+If PowerShell blocks local scripts, allow them for the current terminal only:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\venv.ps1
+```
+
+3. Install dependencies inside the activated virtual environment:
+
+```powershell
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+4. Optionally create `.env` for AI features:
+
+```dotenv
+GROQ_API_KEY=your_groq_api_key
+```
+
+5. Start the website:
+
+```powershell
+python -m streamlit run website.py
+```
+
 ## Status
-- Under active development
-##Requirements:
-1. Python 3.x
-2. Ollama ( optional )
-3. node.js
-4. react.js
-###How to run locally :
-- open your code studio, use the file explorer, go to the frontend folder, create a new folder and name it .env.local
-- cd to the backend folder, install all the requirement into that terminal ( pip install -r requirements.txt )
-- python -m uvicorn main:app --reload --port 8000
-- cd to frontend folder then npm install then npm run dev ( you should got a localhost link, paste it into your browser )
+
+Under active development.
+
