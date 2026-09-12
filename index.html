@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Focused IELTS Reading and Writing practice with AI feedback.">
+  <title>IELTS Practice</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style type="text/tailwindcss">
+    @theme {
+      --color-forest-950: #132319;
+      --color-forest-900: #1b2d20;
+      --color-forest-800: #24452f;
+      --color-forest-700: #2d5a3c;
+      --color-forest-600: #367447;
+      --color-forest-500: #228b22;
+      --color-forest-200: #cfe0cb;
+      --color-forest-100: #e2ebdf;
+      --color-forest-50: #f5f8f4;
+      --color-moss: #dce9b9;
+      --color-mint: #c9eadb;
+      --color-sun: #f2d982;
+      --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    @layer base {
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body { @apply m-0 min-h-screen bg-forest-50 font-sans text-forest-900 antialiased; }
+      button, input, textarea, select { font: inherit; }
+      button { @apply cursor-pointer; }
+      :focus-visible { @apply outline-3 outline-offset-3 outline-forest-500; }
+      ::selection { @apply bg-forest-500 text-white; }
+    }
+
+    @layer components {
+      .app-shell { @apply mx-auto min-h-screen max-w-[1480px] px-4 py-4 sm:px-6 lg:px-8 lg:py-6; }
+      .bento { @apply rounded-[1.75rem] border border-forest-100 bg-white; }
+      .bento-soft { @apply rounded-[1.75rem] border border-forest-100 bg-forest-50; }
+      .nav-item { @apply flex min-h-11 items-center gap-3 rounded-2xl px-4 text-sm font-semibold text-forest-700 transition-colors duration-200 hover:bg-forest-100 hover:text-forest-950; }
+      .nav-item.active { @apply bg-forest-900 text-white; }
+      .mobile-nav-item { @apply flex min-h-12 min-w-16 flex-col items-center justify-center gap-1 rounded-xl px-2 text-[11px] font-semibold text-forest-700; }
+      .mobile-nav-item.active { @apply bg-forest-900 text-white; }
+      .primary-btn { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-forest-900 px-5 text-sm font-bold text-white transition-colors duration-200 hover:bg-forest-700 disabled:cursor-not-allowed disabled:opacity-50; }
+      .secondary-btn { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-forest-200 bg-white px-5 text-sm font-bold text-forest-900 transition-colors duration-200 hover:bg-forest-50 disabled:cursor-not-allowed disabled:opacity-50; }
+      .field { @apply min-h-11 w-full rounded-xl border border-forest-200 bg-white px-4 text-forest-950 placeholder:text-forest-700/70 transition-colors hover:border-forest-500 focus:border-forest-500 focus:outline-none; }
+      .label { @apply mb-2 block text-sm font-bold text-forest-900; }
+      .metric-label { @apply text-xs font-bold uppercase tracking-[0.12em] text-forest-700; }
+      .page-title { @apply text-3xl font-black tracking-[-0.035em] text-forest-950 sm:text-4xl; text-wrap: balance; }
+      .page-copy { @apply mt-2 max-w-2xl text-base leading-7 text-forest-700; text-wrap: pretty; }
+      .tag { @apply inline-flex items-center gap-2 rounded-full bg-forest-100 px-3 py-1 text-xs font-bold text-forest-800; }
+      .option { @apply flex cursor-pointer items-start gap-3 rounded-2xl border border-forest-100 bg-white p-4 text-sm leading-6 transition-colors hover:border-forest-500 hover:bg-forest-50; }
+      .option:has(input:checked) { @apply border-forest-500 bg-forest-50 ring-2 ring-forest-500/15; }
+      .notice { @apply rounded-2xl border border-forest-100 bg-forest-50 p-4 text-sm leading-6 text-forest-800; }
+      .error { @apply border-red-200 bg-red-50 text-red-900; }
+      .success { @apply border-green-200 bg-green-50 text-green-900; }
+      .skeleton { @apply animate-pulse rounded-xl bg-forest-100; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main" class="fixed left-4 top-4 z-50 -translate-y-24 rounded-xl bg-forest-950 px-4 py-3 font-bold text-white transition-transform focus:translate-y-0">Skip to content</a>
+
+  <div class="app-shell lg:grid lg:grid-cols-[248px_minmax(0,1fr)] lg:gap-6">
+    <aside class="bento sticky top-6 hidden h-[calc(100vh-3rem)] flex-col p-4 lg:flex" aria-label="Primary navigation">
+      <div class="flex items-center gap-3 px-2 py-3">
+        <div class="grid size-11 place-items-center rounded-2xl bg-forest-900 text-white" aria-hidden="true">
+          <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+        </div>
+        <div><p class="font-black tracking-[-0.02em]">IELTS Practice</p><p class="text-xs text-forest-700">Build your next band</p></div>
+      </div>
+
+      <nav class="mt-6 space-y-1" id="desktop-nav"></nav>
+
+      <div class="mt-auto rounded-2xl bg-forest-900 p-4 text-white">
+        <div class="mb-3 flex items-center justify-between">
+          <span class="text-sm font-bold">AI feedback</span>
+          <span id="key-status-dot" class="size-2 rounded-full bg-sun"></span>
+        </div>
+        <p id="key-status-text" class="text-xs leading-5 text-white/75">Add Groq key to unlock full grading.</p>
+        <button data-open-key class="mt-4 w-full rounded-xl bg-white px-3 py-2.5 text-sm font-bold text-forest-950 hover:bg-forest-50">Manage key</button>
+      </div>
+    </aside>
+
+    <div class="min-w-0 pb-24 lg:pb-0">
+      <header class="mb-4 flex items-center justify-between rounded-2xl border border-forest-100 bg-white px-4 py-3 lg:hidden">
+        <div class="flex items-center gap-3">
+          <div class="grid size-10 place-items-center rounded-xl bg-forest-900 text-white" aria-hidden="true">
+            <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+          </div>
+          <div><p class="font-black">IELTS Practice</p><p class="text-xs text-forest-700">Focused learning</p></div>
+        </div>
+        <button data-open-key class="grid size-11 place-items-center rounded-xl border border-forest-200 text-forest-900" aria-label="Manage Groq API key">
+          <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m12 12 4-4 2 2 2-2 2 2-4 4"/></svg>
+        </button>
+      </header>
+
+      <main id="main" tabindex="-1"></main>
+    </div>
+  </div>
+
+  <nav id="mobile-nav" class="fixed inset-x-3 bottom-3 z-40 flex justify-around rounded-2xl border border-forest-100 bg-white/95 p-2 shadow-[0_12px_40px_rgba(27,45,32,0.15)] backdrop-blur lg:hidden" aria-label="Mobile navigation"></nav>
+
+  <dialog id="key-dialog" class="m-auto w-[min(92vw,480px)] rounded-[1.75rem] border border-forest-100 bg-white p-0 text-forest-900 shadow-2xl backdrop:bg-forest-950/60">
+    <form id="key-form" method="dialog" class="p-6">
+      <div class="flex items-start justify-between gap-4">
+        <div><h2 class="text-xl font-black">Groq API key</h2><p class="mt-1 text-sm leading-6 text-forest-700">Stored only in this browser session. Server `.env` key remains supported.</p></div>
+        <button value="cancel" class="grid size-10 shrink-0 place-items-center rounded-xl border border-forest-200" aria-label="Close API key dialog">
+          <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 6-12 12M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <label for="api-key" class="label mt-6">API key</label>
+      <input id="api-key" class="field" type="password" autocomplete="off" placeholder="gsk_...">
+      <div class="mt-5 flex justify-end gap-3">
+        <button value="cancel" class="secondary-btn">Cancel</button>
+        <button id="save-key" value="default" class="primary-btn">Save key</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast-region" class="fixed right-4 top-4 z-50 space-y-2" role="status" aria-live="polite"></div>
+
+  <script>
+    const icons = {
+      home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10M9 20v-6h6v6"/></svg>',
+      coach: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 7l8 4 8-4-8-4Z"/><path d="m4 12 8 4 8-4M4 17l8 4 8-4"/></svg>',
+      reading: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>',
+      writing: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>',
+      explain: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"/><path d="M9.5 9a2.5 2.5 0 1 1 3.4 2.3c-.9.4-.9 1.2-.9 1.7M12 16h.01"/></svg>',
+      progress: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 16 4-5 4 3 5-7"/></svg>',
+      arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>',
+      spark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.1L5 10l5.1 1.9L12 17l1.9-5.1L19 10l-5.1-1.9Z"/><path d="m5 3-.7 1.8L2.5 5.5l1.8.7L5 8l.7-1.8 1.8-.7-1.8-.7Z"/></svg>'
+    };
+
+    const navItems = [
+      ['home', 'Home'], ['coach', 'Coach'], ['reading', 'Reading'],
+      ['writing', 'Writing'], ['explain', 'Explain'], ['progress', 'Progress']
+    ];
+
+    const state = {
+      page: location.hash.slice(1) || 'home',
+      progress: { reading: [], writing: [] },
+      hasServerKey: false,
+      apiKey: sessionStorage.getItem('groq_api_key') || '',
+      writingResult: null,
+    };
+
+    const passage = {
+      title: 'The Rise of Urban Beekeeping',
+      level: 'Academic Reading · Passage 01',
+      text: 'Over the past decade, city dwellers across the world have taken up beekeeping as a hobby and, increasingly, as a small business. Rooftops in cities such as London, New York and Tokyo now host thousands of hives. Proponents argue that urban bees are often healthier than their rural counterparts, since cities tend to have a greater diversity of flowering plants and lower pesticide use than industrial farmland. Critics, however, warn that packing too many hives into a small area can lead to competition for nectar, potentially harming wild pollinator populations that were already under pressure.',
+      questions: [
+        { q: 'According to the passage, why might urban bees be healthier than rural bees?', options: ['Cities have fewer flowering plants', 'Cities often have lower pesticide use and more plant diversity', 'Urban beekeepers use more medication', 'Rural areas have more predators'] },
+        { q: 'What concern do critics raise about urban beekeeping?', options: ['It is too expensive', 'It requires too much space', 'Too many hives may compete with wild pollinators', 'Honey quality is lower in cities'] }
+      ]
+    };
+
+    const prompts = [
+      'Some people believe that unpaid community service should be a compulsory part of high school education. To what extent do you agree or disagree?',
+      'The chart below shows the percentage of households with internet access in three countries between 2000 and 2020. Summarise the information by selecting and reporting the main features.'
+    ];
+
+    const criterionKeys = [
+      ['task_achievement_band', 'Task Achievement', 'TA'],
+      ['coherence_cohesion_band', 'Coherence & Cohesion', 'CC'],
+      ['lexical_resource_band', 'Lexical Resource', 'LR'],
+      ['grammar_band', 'Grammar', 'GRA']
+    ];
+
+    function icon(name, classes = 'size-5') {
+      return icons[name].replace('<svg ', `<svg class="${classes}" aria-hidden="true" `);
+    }
+
+    function escapeHtml(value = '') {
+      const div = document.createElement('div');
+      div.textContent = String(value);
+      return div.innerHTML;
+    }
+
+    function renderNav() {
+      document.getElementById('desktop-nav').innerHTML = navItems.map(([id, label]) => `
+        <button data-nav="${id}" class="nav-item w-full ${state.page === id ? 'active' : ''}" aria-current="${state.page === id ? 'page' : 'false'}">
+          ${icon(id)}<span>${label}</span>
+        </button>`).join('');
+      document.getElementById('mobile-nav').innerHTML = navItems.map(([id, label]) => `
+        <button data-nav="${id}" class="mobile-nav-item ${state.page === id ? 'active' : ''}" aria-current="${state.page === id ? 'page' : 'false'}">
+          ${icon(id, 'size-5')}<span>${label}</span>
+        </button>`).join('');
+      document.querySelectorAll('[data-nav]').forEach(button => button.addEventListener('click', () => navigate(button.dataset.nav)));
+    }
+
+    function navigate(page) {
+      state.page = page;
+      history.replaceState(null, '', `#${page}`);
+      renderNav();
+      renderPage();
+      document.getElementById('main').focus({ preventScroll: true });
+      scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    }
+
+    function header(title, copy, tag = '') {
+      return `<header class="mb-6"><div class="flex flex-wrap items-center gap-3">${tag ? `<span class="tag">${tag}</span>` : ''}</div><h1 class="page-title ${tag ? 'mt-4' : ''}">${title}</h1><p class="page-copy">${copy}</p></header>`;
+    }
+
+    function avgReading() {
+      const rows = state.progress.reading;
+      return rows.length ? rows.reduce((sum, row) => sum + row.score / row.total * 100, 0) / rows.length : null;
+    }
+
+    function avgWriting() {
+      const rows = state.progress.writing;
+      return rows.length ? rows.reduce((sum, row) => sum + Number(row.band_estimate), 0) / rows.length : null;
+    }
+
+    function diagnosis() {
+      const reading = avgReading(), writing = avgWriting();
+      if (reading === null && writing === null) return ['Welcome — let’s find your starting point.', 'Complete one Reading passage and one Writing task. Your coach will use both results.', 'Start Reading', 'reading'];
+      if (reading !== null && writing === null) return [`Reading average: ${reading.toFixed(0)}%.`, 'Try one Writing task next so your coach can compare both skills.', 'Start Writing', 'writing'];
+      if (writing !== null && reading === null) return [`Writing average: band ${writing.toFixed(1)}.`, 'Try one Reading passage next so your coach can compare both skills.', 'Start Reading', 'reading'];
+      const readingBand = reading / 100 * 9;
+      if (readingBand < writing - .5) return [`Reading needs attention.`, `Your ${reading.toFixed(0)}% Reading average trails Writing band ${writing.toFixed(1)}. Practise another passage next.`, 'Practise Reading', 'reading'];
+      if (writing < readingBand - .5) return [`Writing needs attention.`, `Writing band ${writing.toFixed(1)} trails your Reading performance. Submit another essay and apply feedback.`, 'Practise Writing', 'writing'];
+      return ['Your skills look balanced.', `Reading ${reading.toFixed(0)}% · Writing band ${writing.toFixed(1)}. Keep alternating skills.`, 'Open Coach', 'coach'];
+    }
+
+    function renderHome() {
+      const [title, suggestion, action, target] = diagnosis();
+      const reading = avgReading(), writing = avgWriting();
+      return `
+        ${header('Practice with direction.', 'One focused workspace for IELTS Reading, Writing, and feedback that tells you what to do next.', 'Personal IELTS workspace')}
+        <section class="grid gap-4 md:grid-cols-6" aria-label="Learning overview">
+          <article class="bento relative overflow-hidden bg-forest-900 p-6 text-white md:col-span-4 md:row-span-2 sm:p-8">
+            <div class="relative z-10 max-w-xl">
+              <span class="inline-flex rounded-full bg-white/12 px-3 py-1 text-xs font-bold">Coach recommendation</span>
+              <h2 class="mt-8 text-3xl font-black tracking-[-0.04em] sm:text-5xl" style="text-wrap:balance">${title}</h2>
+              <p class="mt-4 max-w-lg text-base leading-7 text-white/75">${suggestion}</p>
+              <button data-go="${target}" class="mt-8 inline-flex min-h-12 items-center gap-3 rounded-xl bg-white px-5 font-bold text-forest-950 hover:bg-forest-50">${action}${icon('arrow')}</button>
+            </div>
+            <svg class="absolute -bottom-12 -right-10 h-64 w-64 text-white/8" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="16" aria-hidden="true"><circle cx="100" cy="100" r="70"/><path d="M30 100h140M100 30c30 26 30 114 0 140M100 30c-30 26-30 114 0 140"/></svg>
+          </article>
+
+          <article class="bento bg-moss p-6 md:col-span-2">
+            <p class="metric-label">Reading average</p>
+            <p class="mt-3 text-4xl font-black tracking-[-0.04em]">${reading === null ? '—' : `${reading.toFixed(0)}%`}</p>
+            <p class="mt-3 text-sm leading-6 text-forest-800">${state.progress.reading.length ? `${state.progress.reading.length} completed attempt${state.progress.reading.length > 1 ? 's' : ''}` : 'No passage completed yet'}</p>
+          </article>
+
+          <article class="bento bg-mint p-6 md:col-span-2">
+            <p class="metric-label">Writing band</p>
+            <p class="mt-3 text-4xl font-black tracking-[-0.04em]">${writing === null ? '—' : writing.toFixed(1)}</p>
+            <p class="mt-3 text-sm leading-6 text-forest-800">${state.progress.writing.length ? `${state.progress.writing.length} feedback session${state.progress.writing.length > 1 ? 's' : ''}` : 'Submit your first response'}</p>
+          </article>
+
+          <button data-go="reading" class="bento group p-6 text-left transition-colors hover:border-forest-500 md:col-span-2">
+            <span class="grid size-11 place-items-center rounded-xl bg-moss text-forest-950">${icon('reading')}</span>
+            <h3 class="mt-6 text-xl font-black">Reading practice</h3>
+            <p class="mt-2 text-sm leading-6 text-forest-700">Read closely, answer questions, get an instant score.</p>
+            <span class="mt-6 flex items-center gap-2 text-sm font-bold text-forest-700 group-hover:text-forest-950">Open passage ${icon('arrow', 'size-4')}</span>
+          </button>
+
+          <button data-go="writing" class="bento group p-6 text-left transition-colors hover:border-forest-500 md:col-span-2">
+            <span class="grid size-11 place-items-center rounded-xl bg-mint text-forest-950">${icon('writing')}</span>
+            <h3 class="mt-6 text-xl font-black">Writing practice</h3>
+            <p class="mt-2 text-sm leading-6 text-forest-700">Draft an essay and receive criterion-level feedback.</p>
+            <span class="mt-6 flex items-center gap-2 text-sm font-bold text-forest-700 group-hover:text-forest-950">Start writing ${icon('arrow', 'size-4')}</span>
+          </button>
+
+          <button data-go="explain" class="bento group bg-sun p-6 text-left transition-colors hover:border-forest-500 md:col-span-2">
+            <span class="grid size-11 place-items-center rounded-xl bg-white/70 text-forest-950">${icon('explain')}</span>
+            <h3 class="mt-6 text-xl font-black">Explain Bot</h3>
+            <p class="mt-2 text-sm leading-6 text-forest-800">Turn a wrong answer into a clear learning moment.</p>
+            <span class="mt-6 flex items-center gap-2 text-sm font-bold text-forest-800">Ask a question ${icon('arrow', 'size-4')}</span>
+          </button>
+        </section>`;
+    }
+
+    function trend(values) {
+      if (values.length < 2) return 'Not enough data';
+      const change = values.at(-1) - values.at(-2);
+      return change > .15 ? 'Improving' : change < -.15 ? 'Needs attention' : 'Steady';
+    }
+
+    function criterionAverages() {
+      const writing = state.progress.writing;
+      return criterionKeys.map(([key, label, short]) => {
+        const values = writing.map(row => Number(row[key])).filter(Number.isFinite);
+        return { key, label, short, value: values.length ? values.reduce((a, b) => a + b, 0) / values.length : null };
+      });
+    }
+
+    function sparkline(values, max = 9) {
+      if (!values.length) return '<div class="grid h-32 place-items-center text-sm text-forest-700">No data yet</div>';
+      const width = 520, height = 120, pad = 10;
+      const points = values.map((v, i) => `${values.length === 1 ? width / 2 : pad + i * (width - pad * 2) / (values.length - 1)},${height - pad - v / max * (height - pad * 2)}`).join(' ');
+      return `<svg viewBox="0 0 ${width} ${height}" class="h-32 w-full overflow-visible" role="img" aria-label="Score history"><path d="M10 ${height - 10}H${width - 10}" stroke="#cfe0cb"/><polyline points="${points}" fill="none" stroke="#228b22" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>${values.map((v, i) => `<circle cx="${values.length === 1 ? width / 2 : pad + i * (width - pad * 2) / (values.length - 1)}" cy="${height - pad - v / max * (height - pad * 2)}" r="5" fill="#fff" stroke="#228b22" stroke-width="3"/>`).join('')}</svg>`;
+    }
+
+    function renderCoach() {
+      const writing = state.progress.writing;
+      const bands = writing.map(row => Number(row.band_estimate)).filter(Number.isFinite);
+      const criteria = criterionAverages();
+      const available = criteria.filter(item => item.value !== null);
+      const weakest = available.length ? [...available].sort((a, b) => a.value - b.value)[0] : null;
+      const tips = {
+        task_achievement_band: 'Re-read the prompt before writing. Make every body paragraph answer it directly.',
+        coherence_cohesion_band: 'Use linking phrases deliberately and begin each paragraph with a clear topic sentence.',
+        lexical_resource_band: 'Replace common words with accurate topic vocabulary and natural collocations.',
+        grammar_band: 'Mix simple, compound, and complex sentences. Check subject–verb agreement.'
+      };
+      return `
+        ${header('Your Coach', 'Patterns from your practice history, distilled into one useful next move.', 'Writing-first coaching')}
+        <section class="grid gap-4 md:grid-cols-6">
+          <article class="bento bg-forest-900 p-6 text-white md:col-span-4">
+            <div class="flex items-start justify-between gap-6"><div><p class="text-sm font-bold text-white/70">Current direction</p><h2 class="mt-3 text-2xl font-black">${weakest ? `${weakest.label} needs focus` : bands.length ? 'Build criterion-level data' : 'Complete your first Writing task'}</h2></div><span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-white/10">${icon('spark')}</span></div>
+            <p class="mt-6 max-w-2xl text-base leading-7 text-white/75">${weakest ? tips[weakest.key] : bands.length ? 'Your existing results lack criterion bands. Use AI grading on your next task to unlock deeper coaching.' : 'Submit one response. Coach will track your overall band, trend, and weakest criterion.'}</p>
+            <button data-go="writing" class="mt-6 rounded-xl bg-white px-5 py-3 text-sm font-bold text-forest-950">Open Writing practice</button>
+          </article>
+          <article class="bento bg-mint p-6 md:col-span-2"><p class="metric-label">Average band</p><p class="mt-3 text-5xl font-black">${bands.length ? (bands.reduce((a,b)=>a+b,0)/bands.length).toFixed(1) : '—'}</p><p class="mt-4 text-sm text-forest-800">${bands.length} attempt${bands.length === 1 ? '' : 's'} · ${trend(bands)}</p></article>
+          <article class="bento p-6 md:col-span-4"><div class="flex items-center justify-between"><div><h2 class="text-lg font-black">Band trajectory</h2><p class="mt-1 text-sm text-forest-700">Latest ${bands.length ? bands.at(-1).toFixed(1) : '—'}</p></div><span class="tag">Last ${Math.min(bands.length, 5)} results</span></div><div class="mt-6">${sparkline(bands.slice(-5))}</div></article>
+          <article class="bento p-6 md:col-span-2"><h2 class="text-lg font-black">Criterion averages</h2><div class="mt-5 space-y-4">${criteria.map(item => `<div><div class="flex justify-between text-sm"><span class="font-semibold">${item.short}</span><span class="font-black">${item.value === null ? '—' : item.value.toFixed(1)}</span></div><div class="mt-2 h-2 overflow-hidden rounded-full bg-forest-100"><div class="h-full rounded-full bg-forest-500" style="width:${item.value === null ? 0 : item.value / 9 * 100}%"></div></div></div>`).join('')}</div></article>
+        </section>`;
+    }
+
+    function renderReading() {
+      return `
+        ${header('Reading Practice', 'Work through one focused passage. Select every answer before submitting.', passage.level)}
+        <form id="reading-form" class="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(420px,.95fr)]">
+          <article class="bento p-6 sm:p-8 xl:sticky xl:top-6 xl:self-start">
+            <div class="flex flex-wrap items-center justify-between gap-3"><span class="tag">Passage</span><span class="text-sm font-semibold text-forest-700">Approx. 2 min read</span></div>
+            <h2 class="mt-6 text-2xl font-black tracking-[-0.025em]">${passage.title}</h2>
+            <p class="mt-6 max-w-[70ch] text-[1.05rem] leading-8 text-forest-800">${passage.text}</p>
+          </article>
+          <section class="space-y-4" aria-label="Questions">
+            ${passage.questions.map((question, index) => `<fieldset class="bento p-5 sm:p-6"><legend class="px-1 text-base font-black"><span class="mr-2 text-forest-500">${String(index + 1).padStart(2, '0')}</span>${question.q}</legend><div class="mt-5 space-y-3">${question.options.map((option, optionIndex) => `<label class="option"><input type="radio" class="mt-1 accent-forest-500" name="question-${index}" value="${optionIndex}" required><span>${option}</span></label>`).join('')}</div></fieldset>`).join('')}
+            <div id="reading-result" aria-live="polite"></div>
+            <button class="primary-btn w-full sm:w-auto" type="submit">Submit answers ${icon('arrow')}</button>
+          </section>
+        </form>`;
+    }
+
+    function renderWriting() {
+      return `
+        ${header('Writing Practice', 'Draft without distraction. Receive a quick estimate or full IELTS criterion feedback with Groq.', 'IELTS Writing · Task 2')}
+        <section class="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(390px,.85fr)]">
+          <form id="writing-form" class="bento p-6 sm:p-8">
+            <label for="writing-prompt" class="label">Choose prompt</label>
+            <select id="writing-prompt" class="field">${prompts.map((prompt, i) => `<option value="${i}">Prompt ${i + 1}</option>`).join('')}</select>
+            <div id="prompt-copy" class="notice mt-4 font-semibold">${prompts[0]}</div>
+            <div class="mt-6 flex items-end justify-between gap-4"><label for="essay" class="label mb-0">Your response</label><span id="word-count" class="text-xs font-bold text-forest-700">0 / 250 words</span></div>
+            <textarea id="essay" class="field mt-2 min-h-[430px] resize-y py-4 leading-7" placeholder="Start your essay here..." required></textarea>
+            <div id="writing-error" class="mt-4" aria-live="polite"></div>
+            <button id="writing-submit" class="primary-btn mt-5 w-full sm:w-auto" type="submit">Get feedback ${icon('spark')}</button>
+          </form>
+          <aside id="writing-feedback" class="bento-soft min-h-[520px] p-6 sm:p-8" aria-live="polite">
+            ${writingFeedbackEmpty()}
+          </aside>
+        </section>`;
+    }
+
+    function writingFeedbackEmpty() {
+      return `<div class="flex h-full min-h-[450px] flex-col items-center justify-center text-center"><span class="grid size-14 place-items-center rounded-2xl bg-forest-100 text-forest-800">${icon('spark', 'size-7')}</span><h2 class="mt-5 text-xl font-black">Feedback appears here</h2><p class="mt-2 max-w-sm text-sm leading-6 text-forest-700">Submit your essay to see estimated band, criterion notes, and one clear next step.</p></div>`;
+    }
+
+    function renderFeedback(result) {
+      const bands = result.criterion_bands;
+      const cards = [['Overall', result.band_estimate], ...criterionKeys.map(([key, , short]) => [short, bands ? bands[key] : null])];
+      return `<div><div class="flex items-center justify-between gap-4"><div><span class="tag">${result.source === 'ai' ? 'AI graded' : 'Quick estimate'}</span><h2 class="mt-4 text-2xl font-black">Your feedback</h2></div><span class="text-xs font-bold text-forest-700">${result.source === 'ai' ? 'Groq · Llama 3.3' : 'Local heuristic'}</span></div>
+        <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5 xl:grid-cols-2 2xl:grid-cols-5">${cards.map(([label, value], index) => `<div class="rounded-2xl ${index === 0 ? 'bg-forest-900 text-white' : 'bg-white border border-forest-100'} p-4"><p class="text-xs font-bold ${index === 0 ? 'text-white/70' : 'text-forest-700'}">${label}</p><p class="mt-2 text-2xl font-black">${value == null ? '—' : Number(value).toFixed(1)}</p></div>`).join('')}</div>
+        <div class="mt-6 space-y-4">${result.criteria_sentences.map(([label, sentence]) => `<div><h3 class="text-sm font-black">${escapeHtml(label)}</h3><p class="mt-1 text-sm leading-6 text-forest-700">${escapeHtml(sentence)}</p></div>`).join('')}</div>
+        <div class="mt-6 rounded-2xl bg-moss p-5"><p class="text-sm font-black">Best next move</p><p class="mt-2 text-sm leading-6 text-forest-800">${escapeHtml(result.overall_tip)}</p></div>
+        ${result.fallback_error ? '<p class="mt-4 text-xs text-forest-700">AI grading unavailable. Local estimate shown instead.</p>' : ''}
+      </div>`;
+    }
+
+    function renderExplain() {
+      return `
+        ${header('Explain Bot', 'Paste a difficult question and compare your answer with the correct one. Get a concise explanation.', 'Powered by Groq')}
+        <section class="grid gap-4 lg:grid-cols-5">
+          <form id="explain-form" class="bento p-6 sm:p-8 lg:col-span-3">
+            <label for="explain-question" class="label">Question</label><textarea id="explain-question" class="field min-h-36 py-4" placeholder="Paste the IELTS question..." required></textarea>
+            <div class="mt-5 grid gap-4 sm:grid-cols-2"><div><label for="user-answer" class="label">Your answer</label><input id="user-answer" class="field" placeholder="What you answered"></div><div><label for="correct-answer" class="label">Correct answer</label><input id="correct-answer" class="field" placeholder="Expected answer" required></div></div>
+            <div id="explain-error" class="mt-4" aria-live="polite"></div><button id="explain-submit" class="primary-btn mt-5" type="submit">Explain answer ${icon('spark')}</button>
+          </form>
+          <aside id="explanation" class="bento bg-sun p-6 sm:p-8 lg:col-span-2" aria-live="polite"><span class="grid size-12 place-items-center rounded-2xl bg-white/70">${icon('explain')}</span><h2 class="mt-6 text-xl font-black">Make mistakes useful</h2><p class="mt-3 text-sm leading-7 text-forest-800">Explanation will focus on why the correct answer works and where your reasoning changed course.</p></aside>
+        </section>`;
+    }
+
+    function renderProgress() {
+      const readings = state.progress.reading;
+      const writings = state.progress.writing;
+      const readingScores = readings.map(row => row.score / row.total * 100);
+      const writingBands = writings.map(row => Number(row.band_estimate));
+      return `
+        ${header('Your Progress', 'See practice history without noise. Use trends to choose your next session.', 'Performance overview')}
+        <section class="grid gap-4 md:grid-cols-6">
+          <article class="bento bg-moss p-6 md:col-span-2"><p class="metric-label">Reading</p><p class="mt-3 text-5xl font-black">${readingScores.length ? `${readingScores.at(-1).toFixed(0)}%` : '—'}</p><p class="mt-4 text-sm text-forest-800">Latest score · ${readings.length} attempt${readings.length === 1 ? '' : 's'}</p></article>
+          <article class="bento bg-mint p-6 md:col-span-2"><p class="metric-label">Writing</p><p class="mt-3 text-5xl font-black">${writingBands.length ? writingBands.at(-1).toFixed(1) : '—'}</p><p class="mt-4 text-sm text-forest-800">Latest band · ${writings.length} attempt${writings.length === 1 ? '' : 's'}</p></article>
+          <article class="bento bg-forest-900 p-6 text-white md:col-span-2"><p class="text-xs font-bold uppercase tracking-[.12em] text-white/60">Total sessions</p><p class="mt-3 text-5xl font-black">${readings.length + writings.length}</p><p class="mt-4 text-sm text-white/70">Every completed task counts.</p></article>
+          <article class="bento p-6 md:col-span-3"><div class="flex justify-between"><div><h2 class="text-lg font-black">Reading scores</h2><p class="mt-1 text-sm text-forest-700">Percentage over time</p></div><button data-go="reading" class="text-sm font-bold text-forest-700 hover:text-forest-950">Practice</button></div><div class="mt-6">${sparkline(readingScores, 100)}</div></article>
+          <article class="bento p-6 md:col-span-3"><div class="flex justify-between"><div><h2 class="text-lg font-black">Writing bands</h2><p class="mt-1 text-sm text-forest-700">Estimate over time</p></div><button data-go="writing" class="text-sm font-bold text-forest-700 hover:text-forest-950">Practice</button></div><div class="mt-6">${sparkline(writingBands, 9)}</div></article>
+        </section>
+        ${(readings.length || writings.length) ? '<div class="mt-6 flex justify-end"><button id="clear-progress" class="secondary-btn border-red-200 text-red-800 hover:bg-red-50">Clear all progress</button></div>' : ''}`;
+    }
+
+    function renderPage() {
+      const renderers = { home: renderHome, coach: renderCoach, reading: renderReading, writing: renderWriting, explain: renderExplain, progress: renderProgress };
+      document.getElementById('main').innerHTML = (renderers[state.page] || renderHome)();
+      document.querySelectorAll('[data-go]').forEach(button => button.addEventListener('click', () => navigate(button.dataset.go)));
+      if (state.page === 'reading') bindReading();
+      if (state.page === 'writing') bindWriting();
+      if (state.page === 'explain') bindExplain();
+      if (state.page === 'progress') bindProgress();
+    }
+
+    function setBusy(button, busy, label) {
+      button.disabled = busy;
+      if (busy) { button.dataset.label = button.innerHTML; button.textContent = label; }
+      else if (button.dataset.label) button.innerHTML = button.dataset.label;
+    }
+
+    async function api(path, options = {}) {
+      const response = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...options });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Something went wrong.');
+      return data;
+    }
+
+    function bindReading() {
+      document.getElementById('reading-form').addEventListener('submit', async event => {
+        event.preventDefault();
+        const button = event.submitter;
+        const answers = passage.questions.map((_, i) => Number(new FormData(event.currentTarget).get(`question-${i}`)));
+        setBusy(button, true, 'Checking answers...');
+        try {
+          const result = await api('/api/progress/reading', { method: 'POST', body: JSON.stringify({ answers }) });
+          state.progress = result.progress;
+          document.getElementById('reading-result').innerHTML = `<div class="notice success"><strong>Score: ${result.score}/${result.total}</strong><br>${result.score === result.total ? 'Excellent. Every answer is correct.' : 'Review passage, then use Explain Bot for anything unclear.'}</div>`;
+        } catch (error) { document.getElementById('reading-result').innerHTML = `<div class="notice error">${escapeHtml(error.message)}</div>`; }
+        finally { setBusy(button, false); }
+      });
+    }
+
+    function bindWriting() {
+      const prompt = document.getElementById('writing-prompt');
+      const copy = document.getElementById('prompt-copy');
+      const essay = document.getElementById('essay');
+      const count = document.getElementById('word-count');
+      prompt.addEventListener('change', () => copy.textContent = prompts[Number(prompt.value)]);
+      essay.addEventListener('input', () => {
+        const words = essay.value.trim() ? essay.value.trim().split(/\s+/).length : 0;
+        count.textContent = `${words} / 250 words`;
+        count.className = `text-xs font-bold ${words >= 250 ? 'text-forest-600' : 'text-forest-700'}`;
+      });
+      document.getElementById('writing-form').addEventListener('submit', async event => {
+        event.preventDefault();
+        const button = document.getElementById('writing-submit');
+        const errorRegion = document.getElementById('writing-error');
+        errorRegion.innerHTML = '';
+        document.getElementById('writing-feedback').innerHTML = '<div class="space-y-4"><div class="skeleton h-8 w-36"></div><div class="grid grid-cols-2 gap-3"><div class="skeleton h-24"></div><div class="skeleton h-24"></div></div><div class="skeleton h-24"></div><div class="skeleton h-32"></div></div>';
+        setBusy(button, true, 'Reviewing your essay...');
+        try {
+          const result = await api('/api/writing-feedback', { method: 'POST', body: JSON.stringify({ essay: essay.value, prompt: prompts[Number(prompt.value)], api_key: state.apiKey }) });
+          state.progress = result.progress;
+          state.writingResult = result;
+          document.getElementById('writing-feedback').innerHTML = renderFeedback(result);
+        } catch (error) {
+          errorRegion.innerHTML = `<div class="notice error">${escapeHtml(error.message)}</div>`;
+          document.getElementById('writing-feedback').innerHTML = writingFeedbackEmpty();
+        } finally { setBusy(button, false); }
+      });
+    }
+
+    function bindExplain() {
+      document.getElementById('explain-form').addEventListener('submit', async event => {
+        event.preventDefault();
+        const button = document.getElementById('explain-submit');
+        const errorRegion = document.getElementById('explain-error');
+        errorRegion.innerHTML = '';
+        setBusy(button, true, 'Thinking...');
+        try {
+          const result = await api('/api/explain', { method: 'POST', body: JSON.stringify({ question: document.getElementById('explain-question').value, user_answer: document.getElementById('user-answer').value, correct_answer: document.getElementById('correct-answer').value, api_key: state.apiKey }) });
+          document.getElementById('explanation').innerHTML = `<span class="grid size-12 place-items-center rounded-2xl bg-white/70">${icon('spark')}</span><h2 class="mt-6 text-xl font-black">Explanation</h2><p class="mt-4 whitespace-pre-wrap text-sm leading-7 text-forest-800">${escapeHtml(result.explanation)}</p>`;
+        } catch (error) { errorRegion.innerHTML = `<div class="notice error">${escapeHtml(error.message)}</div>`; }
+        finally { setBusy(button, false); }
+      });
+    }
+
+    function bindProgress() {
+      const clear = document.getElementById('clear-progress');
+      if (!clear) return;
+      clear.addEventListener('click', async () => {
+        if (!confirm('Clear all Reading and Writing progress? This cannot be undone.')) return;
+        const result = await api('/api/progress/clear', { method: 'POST', body: '{}' });
+        state.progress = result.progress;
+        renderPage();
+        toast('Progress cleared.');
+      });
+    }
+
+    function updateKeyStatus() {
+      const active = Boolean(state.apiKey || state.hasServerKey);
+      document.getElementById('key-status-dot').className = `size-2 rounded-full ${active ? 'bg-green-300' : 'bg-sun'}`;
+      document.getElementById('key-status-text').textContent = active ? 'Groq key ready. Full AI grading unlocked.' : 'Add Groq key to unlock full grading.';
+    }
+
+    function toast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'rounded-xl bg-forest-950 px-4 py-3 text-sm font-bold text-white shadow-xl';
+      toast.textContent = message;
+      document.getElementById('toast-region').appendChild(toast);
+      setTimeout(() => toast.remove(), 2800);
+    }
+
+    const dialog = document.getElementById('key-dialog');
+    document.querySelectorAll('[data-open-key]').forEach(button => button.addEventListener('click', () => {
+      document.getElementById('api-key').value = state.apiKey;
+      dialog.showModal();
+    }));
+    document.getElementById('save-key').addEventListener('click', event => {
+      event.preventDefault();
+      state.apiKey = document.getElementById('api-key').value.trim();
+      if (state.apiKey) sessionStorage.setItem('groq_api_key', state.apiKey); else sessionStorage.removeItem('groq_api_key');
+      updateKeyStatus();
+      dialog.close();
+      toast(state.apiKey ? 'API key saved for this session.' : 'Browser API key removed.');
+    });
+
+    async function init() {
+      renderNav();
+      document.getElementById('main').innerHTML = '<div class="bento p-8"><div class="skeleton h-9 w-64"></div><div class="skeleton mt-4 h-5 w-full max-w-xl"></div><div class="mt-8 grid gap-4 md:grid-cols-3"><div class="skeleton h-52"></div><div class="skeleton h-52"></div><div class="skeleton h-52"></div></div></div>';
+      try {
+        const data = await api('/api/progress');
+        state.progress = data.progress;
+        state.hasServerKey = data.has_api_key;
+      } catch (error) { toast(error.message); }
+      updateKeyStatus();
+      renderPage();
+    }
+
+    addEventListener('hashchange', () => { state.page = location.hash.slice(1) || 'home'; renderNav(); renderPage(); });
+    init();
+  </script>
+</body>
+</html>
