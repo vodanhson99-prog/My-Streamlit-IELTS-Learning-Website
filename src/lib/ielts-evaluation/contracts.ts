@@ -1,13 +1,20 @@
 import type {
   EVALUATION_SCHEMA_VERSION,
+  IELTS_BANDS,
+  IELTS_HALF_BANDS,
   IELTS_TASK2_CRITERION_IDS,
+  IELTS_TASK2_RUBRIC_PUBLISHED_DATE,
+  IELTS_TASK2_RUBRIC_SOURCE_URL,
   IELTS_TASK2_RUBRIC_VERSION,
 } from "./constants"
 
 export type IeltsTask2CriterionId = (typeof IELTS_TASK2_CRITERION_IDS)[number]
-export type IeltsBand = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+export type IeltsBand = (typeof IELTS_BANDS)[number]
+export type IeltsHalfBand = (typeof IELTS_HALF_BANDS)[number]
 export type EvaluationSchemaVersion = typeof EVALUATION_SCHEMA_VERSION
 export type Task2RubricVersion = typeof IELTS_TASK2_RUBRIC_VERSION
+export type Task2RubricPublishedDate = typeof IELTS_TASK2_RUBRIC_PUBLISHED_DATE
+export type Task2RubricSourceUrl = typeof IELTS_TASK2_RUBRIC_SOURCE_URL
 
 export type Task2DescriptorId = `${Task2RubricVersion}.${IeltsTask2CriterionId}.band-${IeltsBand}`
 
@@ -26,8 +33,8 @@ export interface RubricCriterion {
 export interface Task2Rubric {
   readonly id: "ielts-writing-task-2"
   readonly version: Task2RubricVersion
-  readonly publishedDate: string
-  readonly sourceUrl: string
+  readonly publishedDate: Task2RubricPublishedDate
+  readonly sourceUrl: Task2RubricSourceUrl
   readonly criteria: readonly RubricCriterion[]
 }
 
@@ -54,7 +61,7 @@ export interface CriterionEvaluation {
 export interface Task2EvaluationOutput {
   readonly schemaVersion: EvaluationSchemaVersion
   readonly rubricVersion: Task2RubricVersion
-  readonly overallBand: number
+  readonly overallBand: IeltsHalfBand
   readonly criteria: readonly CriterionEvaluation[]
   readonly summary: string
 }

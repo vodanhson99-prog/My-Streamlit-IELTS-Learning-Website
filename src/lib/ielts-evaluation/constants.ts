@@ -12,3 +12,4 @@ export const IELTS_TASK2_CRITERION_IDS = [
 ] as const
 
 export const IELTS_BANDS = [9, 8, 7, 6, 5, 4, 3, 2, 1, 0] as const
+export const IELTS_HALF_BANDS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9] as const

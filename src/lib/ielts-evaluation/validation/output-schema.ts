@@ -1,6 +1,7 @@
 import { z } from "zod"
 import {
   EVALUATION_SCHEMA_VERSION,
+  IELTS_HALF_BANDS,
   IELTS_TASK2_CRITERION_IDS,
   IELTS_TASK2_RUBRIC_VERSION,
 } from "../constants"
@@ -37,7 +38,7 @@ const criterionEvaluationSchema = z.object({
 export const evaluationOutputSchema = z.object({
   schemaVersion: z.literal(EVALUATION_SCHEMA_VERSION),
   rubricVersion: z.literal(IELTS_TASK2_RUBRIC_VERSION),
-  overallBand: z.number().min(0).max(9).refine((band) => Number.isInteger(band * 2), "Overall band must use 0.5 increments."),
+  overallBand: z.union(IELTS_HALF_BANDS.map((band) => z.literal(band))),
   criteria: z.array(criterionEvaluationSchema).length(IELTS_TASK2_CRITERION_IDS.length),
   summary: nonEmptyText,
 }).strict().superRefine((value, context) => {

@@ -18,9 +18,8 @@ export class AIProviderError extends Error {
     message: string,
     readonly retryable: boolean,
     readonly status?: number,
-    options?: ErrorOptions,
   ) {
-    super(message, options)
+    super(message)
     this.name = "AIProviderError"
   }
 
@@ -87,8 +86,6 @@ export function createGroqProvider(options: GroqProviderOptions = {}): AIProvide
           timedOut ? "timeout" : "network",
           timedOut ? "AI provider request timed out." : "AI provider network request failed.",
           true,
-          undefined,
-          { cause: error },
         )
       }
 
@@ -97,8 +94,8 @@ export function createGroqProvider(options: GroqProviderOptions = {}): AIProvide
       let payload: unknown
       try {
         payload = await response.json()
-      } catch (error) {
-        throw new AIProviderError("invalid_response", "AI provider returned invalid JSON.", false, response.status, { cause: error })
+      } catch {
+        throw new AIProviderError("invalid_response", "AI provider returned invalid JSON.", false, response.status)
       }
 
       const parsed = groqResponseSchema.safeParse(payload)

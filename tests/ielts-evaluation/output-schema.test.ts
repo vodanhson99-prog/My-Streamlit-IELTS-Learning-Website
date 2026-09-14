@@ -53,6 +53,14 @@ describe("evaluationOutputSchema", () => {
     expect(evaluationOutputSchema.safeParse(invalid).success).toBe(false)
   })
 
+  it.each([undefined, null, -0.5, 4.25, 9.5, "7"])("fails closed for invalid overall score %j", (overallBand) => {
+    expect(evaluationOutputSchema.safeParse({ ...validOutput, overallBand }).success).toBe(false)
+  })
+
+  it.each([0, 0.5, 6, 6.5, 9])("accepts IELTS half-band overall score %s", (overallBand) => {
+    expect(evaluationOutputSchema.safeParse({ ...validOutput, overallBand }).success).toBe(true)
+  })
+
   it("rejects missing evidence, blockers, and annotation candidates", () => {
     for (const field of ["evidence", "blockers", "annotationCandidates"] as const) {
       const invalid = structuredClone(validOutput)

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import { describe, expect, it } from "vitest"
 import { IELTS_TASK2_RUBRIC } from "../../src/lib/ielts-evaluation/rubric/task2-v2023"
 
@@ -23,9 +24,13 @@ describe("IELTS_TASK2_RUBRIC", () => {
     }
   })
 
-  it("uses current official Task Response wording", () => {
-    const band9 = IELTS_TASK2_RUBRIC.criteria[0].bands[0]
-    expect(band9.descriptor).toContain("The prompt is appropriately addressed and explored in depth.")
-    expect(band9.descriptor).toContain("Any lapses in content or support are extremely rare.")
+  it("pins every source-vetted official descriptor", () => {
+    const canonical = IELTS_TASK2_RUBRIC.criteria.flatMap((criterion) =>
+      criterion.bands.map(({ id, descriptor }) => `${id}\n${descriptor}`),
+    ).join("\n")
+
+    expect(createHash("sha256").update(canonical, "utf8").digest("hex")).toBe(
+      "db28343e4b756fc79e4123d96291f9b1e02dc8e1bded8006c1e1abaa96ccc4ff",
+    )
   })
 })
