@@ -48,6 +48,21 @@ export interface AnnotationCandidate {
   readonly quote: string
   readonly label: string
   readonly rationale: string
+  readonly paragraphIndex?: number
+  readonly surroundingContext?: string
+}
+
+export type AnnotationResolutionStatus = "resolved" | "ambiguous" | "unresolved"
+
+export interface ResolvedAnnotation {
+  readonly id: string
+  readonly criterionId: IeltsTask2CriterionId | string
+  readonly quote: string
+  readonly label: string
+  readonly rationale: string
+  readonly status: AnnotationResolutionStatus
+  readonly startOffset?: number
+  readonly endOffset?: number
 }
 
 export interface CriterionEvaluation {
