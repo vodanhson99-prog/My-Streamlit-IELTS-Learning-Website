@@ -66,3 +66,35 @@ export interface Task2EvaluationOutput {
   readonly criteria: readonly CriterionEvaluation[]
   readonly summary: string
 }
+
+export type EvaluationStability = "high" | "medium" | "low"
+
+export interface AdjudicationRecord {
+  readonly criterionId: IeltsTask2CriterionId
+  readonly originalBand: IeltsBand
+  readonly challengedBand: IeltsBand
+  readonly decision: "confirmed" | "overturned"
+  readonly rationale: string
+}
+
+export interface LockedTask2Evaluation {
+  readonly status: "completed"
+  readonly locked: true
+  readonly schemaVersion: EvaluationSchemaVersion
+  readonly rubricVersion: Task2RubricVersion
+  readonly overallBand: IeltsHalfBand
+  readonly criteria: readonly CriterionEvaluation[]
+  readonly stability: EvaluationStability
+  readonly adjudicationRecords: readonly AdjudicationRecord[]
+  readonly summary: string
+}
+
+export interface FailedTask2Evaluation {
+  readonly status: "failed"
+  readonly locked: false
+  readonly error: string
+  readonly failedCriteria?: readonly IeltsTask2CriterionId[]
+}
+
+export type Task2EvaluationResult = LockedTask2Evaluation | FailedTask2Evaluation
+

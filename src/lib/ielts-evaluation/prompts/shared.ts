@@ -46,3 +46,7 @@ export function buildCriterionPrompt(input: CriterionPromptInput) {
 
   return { system, user }
 }
+
+export function wrapUntrustedContent(tag: string, content: unknown): string {
+  return `<${tag}>\n${encodeData(content)}\n</${tag}>`
+}

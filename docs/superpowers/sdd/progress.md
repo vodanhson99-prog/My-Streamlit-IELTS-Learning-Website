@@ -10,12 +10,12 @@ Human snapshot: `docs/ielts-writing-evaluation/PROGRESS.md`
 ## Complete
 
 - Task 1: complete (commits `f08e807`..`0dc8d4f`, review clean after harden)
-- Task 2 implement: complete (commit `f6dddc0`, parent tests/build pass; **formal task review interrupted** — re-run before Task 3)
+- Task 2: complete (commit `f6dddc0`, review clean, Step 6 closed)
+- Task 3: complete (orchestration, retry-once, evidence validation, challenger, deterministic aggregation, score lock)
 
 ## In progress / next
 
-- Task 2 Step 6: Phase 2 independent review — PENDING
-- Task 3: Orchestration + scoring — NOT STARTED
+- Task 4: Annotation resolution — NEXT
 
 ## Notes
 

@@ -73,9 +73,9 @@ Delivered:
 
 | Phase | Name | Status |
 |------:|------|--------|
-| 2 | Task review / any follow-up fixes | Interrupted — re-run review of `f6dddc0` before Phase 3 |
-| 3 | Orchestration + scoring (`evaluateTask2`, retry, challenger, aggregate, lock) | Not started |
-| 4 | Annotation resolution | Not started |
+| 2 | Task review / any follow-up fixes | Completed & reviewed |
+| 3 | Orchestration + scoring (`evaluateTask2`, retry, challenger, aggregate, lock) | Completed |
+| 4 | Annotation resolution | Next |
 | 5 | Coaching (post score-lock only) | Not started |
 | 6 | API integration (`/api/writing-feedback` → `evaluateTask2`, remove heuristic band fallback) | Not started |
 | 7 | Result UI (Estimated Task 2 Band, highlights, blockers) | Not started |

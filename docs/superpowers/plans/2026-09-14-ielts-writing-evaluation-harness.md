@@ -71,11 +71,11 @@
 
 **Done commit:** `f6dddc0`
 
-- [ ] **Step 6: Re-run independent Phase 2 task review** (interrupted previously; required before Phase 3)
+- [x] **Step 6: Re-run independent Phase 2 task review** (independent review clean; isolation, prompts, and schema match spec; ready for Phase 3)
 
 ---
 
-### Task 3: Orchestration + Scoring (Phase 3) — NEXT
+### Task 3: Orchestration + Scoring (Phase 3) — COMPLETE
 
 **Files:**
 - Create: `src/lib/ielts-evaluation/evaluate-task2.ts`
@@ -88,13 +88,13 @@
 - Consumes: four graders
 - Produces: `evaluateTask2(input)` → locked evaluation OR fail status; `aggregateTask2Bands`; adjudication records; stability
 
-- [ ] **Step 1: Write failing tests** for aggregation half-band math, fail-closed missing judge, challenge triggers, targetBand isolation from grader payloads
-- [ ] **Step 2: Implement** `aggregateTask2Bands` (deterministic; model must never average)
-- [ ] **Step 3: Implement** evidence validation + `shouldChallenge` (~0.70 confidence threshold tunable)
-- [ ] **Step 4: Implement** challenger (H1 lower vs H2 higher; confirm/overturn; no averaging)
-- [ ] **Step 5: Implement** `evaluateTask2` orchestration: validate → Promise.all graders → retry once → fail if any required missing → challenge → aggregate → LOCK
-- [ ] **Step 6: Verify** `pnpm test` + `pnpm build`
-- [ ] **Step 7: Commit** `feat: add IELTS grading orchestration`
+- [x] **Step 1: Write failing tests** for aggregation half-band math, fail-closed missing judge, challenge triggers, targetBand isolation from grader payloads
+- [x] **Step 2: Implement** `aggregateTask2Bands` (deterministic; model must never average)
+- [x] **Step 3: Implement** evidence validation + `shouldChallenge` (~0.70 confidence threshold tunable)
+- [x] **Step 4: Implement** challenger (H1 lower vs H2 higher; confirm/overturn; no averaging)
+- [x] **Step 5: Implement** `evaluateTask2` orchestration: validate → Promise.all graders → retry once → fail if any required missing → challenge → aggregate → LOCK
+- [x] **Step 6: Verify** `pnpm test` + `pnpm build`
+- [x] **Step 7: Commit** `feat: add IELTS grading orchestration`
 
 ---
 
