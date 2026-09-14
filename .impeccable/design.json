@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-14T07:52:00+07:00",
+  "title": "Design System: IELTS Prep",
+  "extensions": {
+    "colorMeta": {
+      "paper": { "role": "neutral", "displayName": "Paper", "canonical": "#ffffff", "tonalRamp": ["#262626", "#404040", "#595959", "#737373", "#8c8c8c", "#a6a6a6", "#d9d9d9", "#ffffff"] },
+      "ink": { "role": "primary", "displayName": "Ink", "canonical": "#000000", "tonalRamp": ["#000000", "#1a1a1a", "#333333", "#4d4d4d", "#666666", "#808080", "#b3b3b3", "#ffffff"] },
+      "muted": { "role": "neutral", "displayName": "Muted", "canonical": "#f4f4f5", "tonalRamp": ["#242426", "#3d3d3f", "#57575a", "#717174", "#8a8a8d", "#a4a4a7", "#d0d0d2", "#f4f4f5"] },
+      "quiet-ink": { "role": "neutral", "displayName": "Quiet Ink", "canonical": "#52525b", "tonalRamp": ["#27272b", "#3f3f45", "#58585f", "#727279", "#8b8b92", "#a5a5ab", "#ceced2", "#f5f5f5"] },
+      "rule": { "role": "neutral", "displayName": "Rule", "canonical": "#e4e4e7", "tonalRamp": ["#232326", "#3d3d40", "#56565a", "#707074", "#89898d", "#a3a3a7", "#cfcfd2", "#e4e4e7"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Condensed Display", "purpose": "Homepage and major page headings." },
+      "body": { "displayName": "Readable Sans", "purpose": "Explanatory and task copy." },
+      "label": { "displayName": "Measurement Mono", "purpose": "Scores, status, metadata, and action hints." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "page-enter", "value": "260ms cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Reveal page content without delaying visibility." },
+      { "name": "row-hover", "value": "transition-colors", "purpose": "Clarify selectable task rows." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "High-priority action in ink on paper.",
+      "html": "<button class=\"ds-btn-primary\">START PRACTICE</button>",
+      "css": ".ds-btn-primary { background: #000; color: #fff; height: 40px; padding: 0 16px; border: 0; border-radius: 2px; font: 500 11px var(--font-albert-sans), sans-serif; transition: background .2s; } .ds-btn-primary:hover { background: #262626; } .ds-btn-primary:focus-visible { outline: 2px solid #000; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ruled Task Row",
+      "kind": "custom",
+      "refersTo": "ruled-task-row",
+      "description": "Full-width skill choice with one selected ink row.",
+      "html": "<button class=\"ds-task-row\"><strong>Reading practice</strong><span>Academic passages and answer review.</span><b>START →</b></button>",
+      "css": ".ds-task-row { display: grid; grid-template-columns: 1fr auto; gap: 16px; width: 100%; min-height: 96px; padding: 20px; text-align: left; color: #000; background: #fff; border: 0; border-bottom: 1px solid #e4e4e7; font: 400 12px var(--font-albert-sans), sans-serif; } .ds-task-row:hover { background: #f4f4f5; } .ds-task-row:focus-visible { outline: 2px solid #000; outline-offset: -2px; }"
+    },
+    {
+      "name": "Active Task Row",
+      "kind": "custom",
+      "refersTo": "ruled-task-row",
+      "description": "Primary skill row with maximum action contrast.",
+      "html": "<button class=\"ds-task-row-active\"><strong>Reading practice</strong><b>START →</b></button>",
+      "css": ".ds-task-row-active { display: grid; grid-template-columns: 1fr auto; gap: 16px; width: 100%; min-height: 112px; padding: 20px; text-align: left; color: #fff; background: #000; border: 0; font: 400 12px var(--font-albert-sans), sans-serif; } .ds-task-row-active:hover { background: #262626; } .ds-task-row-active:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Study Sheet",
+    "overview": "IELTS Prep uses a focused working surface for learners who want to begin practice without navigating a noisy dashboard. The homepage uses paper-white space, black ink, ruled divisions, condensed display type, and quiet monospaced measurements. Structure carries emphasis; decoration stays out of the way.\n\nThe visual system is restrained and high-contrast. Full-width practice rows create the main action surface, while progress and review remain supporting evidence.",
+    "keyCharacteristics": ["Ruled, full-width task rows", "Black-and-white hierarchy", "Condensed headings with readable sans and mono data", "Flat surfaces and 1px rules"],
+    "rules": [
+      { "name": "The Ink-and-Paper Rule", "body": "Let black ink identify action and paper preserve reading calm; do not add competing accent colors without a product reason.", "section": "colors" },
+      { "name": "The One Voice Rule", "body": "Use condensed type for hierarchy, sans for explanation, and mono only where data or system state is present.", "section": "typography" },
+      { "name": "The Flat Surface Rule", "body": "No shadow should compete with a practice action; use a border or tonal state first.", "section": "elevation" }
+    ],
+    "dos": ["Do lead homepage with practice selection, not analytics.", "Do use proximity and horizontal rules to group tasks.", "Do keep scores and status in JetBrains Mono.", "Do preserve visible focus and reduced-motion behavior.", "Do keep mobile order identical to desktop reading order."],
+    "donts": ["Don't turn every homepage region into a rounded card.", "Don't use decorative gradients, gamified progress treatments, or competing accent colors.", "Don't use monospace as the display voice for explanatory copy.", "Don't hide empty score states behind an ambiguous dash."]
+  }
+}

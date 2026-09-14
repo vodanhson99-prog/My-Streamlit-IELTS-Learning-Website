@@ -1,63 +1,57 @@
-# My HTML + Tailwind IELTS Learning Website
+# IELTS Prep — Modern Next.js Dashboard
 
-IELTS practice website built with native HTML, Tailwind CSS, and a small Python standard-library HTTP server.
+Modern IELTS preparation platform built with **Next.js (App Router)**, **TypeScript**, **Tailwind CSS v4**, and **shadcn/ui**.
 
 ## Features
 
-- Bento-style dashboard in existing forest-green palette
-- Reading practice with instant scoring
-- Writing practice with local heuristic feedback or server-side AI feedback
-- IELTS criterion coaching and progress charts
-- AI-powered Explain Bot
-- Responsive desktop sidebar and mobile bottom navigation
-- Keyboard focus states, skip link, accessible labels, and reduced-motion support
+- **Personalized Coach & Dashboard:** Actionable diagnostics based on practice trends.
+- **Reading Practice:** Authentic IELTS academic passages with instant scoring and explanation support.
+- **Writing Studio:** Real-time word tracking, heuristic evaluation, and AI-powered band scoring across 4 official IELTS criteria.
+- **Explain Bot:** On-demand AI tutor to clarify incorrect reading/listening options.
+- **Local Persistence:** Zero-friction client storage via `localStorage` with data reset support.
 
-## Requirements
+## Getting Started
 
-- Python 3.9+
-- Server-side AI API key optional; required for AI features
+### Prerequisites
 
-## Run locally on Windows
+- Node.js 18.17+ or 20+
+- pnpm 9+
 
-1. Create and activate `.venv`:
+### 1. Install Dependencies
 
-```powershell
-.\venv.ps1
+```bash
+pnpm install
 ```
 
-If PowerShell blocks local scripts:
+### 2. Configure Environment (Optional for AI Examiner)
 
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\venv.ps1
+Copy the environment sample and provide your Groq API key:
+
+```bash
+cp .env.example .env.local
 ```
 
-2. Install dependencies:
+Edit `.env.local`:
 
-```powershell
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-```
-
-3. Optional: create `.env` for server-side AI features:
-
-```dotenv
-GROQ_API_KEY=your_groq_api_key
+```env
+GROQ_API_KEY=your_groq_api_key_here
 AI_API_URL=https://api.groq.com/openai/v1/chat/completions
-AI_MODEL=your_server_side_model_name
+AI_MODEL=llama-3.3-70b-versatile
 ```
 
-4. Start web server:
+> Note: If no API key is provided, the Writing module automatically falls back to local heuristic analysis.
 
-```powershell
-python website.py
+### 3. Run Development Server
+
+```bash
+pnpm dev
 ```
 
-5. Open http://localhost:8501
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Notes
+### 4. Build for Production
 
-- Tailwind loads from `https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4` during development.
-- Progress stays in local `ielts_progress.json`.
-- AI provider, model, and API key stay server-side through `.env`.
-- `website.py` serves HTML and JSON API routes. No Streamlit dependency remains.
+```bash
+pnpm build
+pnpm start
+```

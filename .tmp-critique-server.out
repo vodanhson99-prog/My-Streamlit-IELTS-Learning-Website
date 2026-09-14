@@ -1,0 +1,40 @@
+▲ Next.js 16.3.5 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://26.113.237.11:3001
+✓ Ready in 628ms
+✓ Running next.config.ts took 35ms
+
+▲ Next.js 16.3.5 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://26.113.237.11:3001
+✓ Ready in 4.3s
+✓ Running next.config.ts took 116ms
+
+ GET / 200 in 1674ms (next.js: 1523ms, application-code: 150ms)
+ GET /api/config 200 in 216ms (next.js: 202ms, application-code: 14ms)
+ GET /api/config 200 in 6ms (next.js: 2ms, application-code: 4ms)
+ GET /api/practice-catalog 200 in 3.8s (next.js: 240ms, application-code: 3.6s)
+ GET /api/practice-catalog 200 in 3.7s (next.js: 4ms, application-code: 3.7s)
+ GET / 200 in 30ms (next.js: 8ms, application-code: 22ms)
+✓ Compiled in 92ms
+ GET / 200 in 18ms (next.js: 6ms, application-code: 12ms)
+✓ Compiled in 82ms
+ GET /api/config 200 in 10ms (next.js: 7ms, application-code: 3ms)
+ GET /api/practice-catalog 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET / 200 in 39ms (next.js: 5ms, application-code: 34ms)
+✓ Compiled in 93ms
+ GET /api/config 200 in 7ms (next.js: 4ms, application-code: 3ms)
+ GET /api/config 200 in 4ms (next.js: 1.3ms, application-code: 2ms)
+ GET /api/practice-catalog 200 in 3.6s (next.js: 1.6ms, application-code: 3.6s)
+ GET /api/practice-catalog 200 in 3.7s (next.js: 1.1ms, application-code: 3.7s)
+ GET / 200 in 19ms (next.js: 1.8ms, application-code: 17ms)
+ GET /api/config 200 in 6ms (next.js: 4ms, application-code: 2ms)
+ GET /api/config 200 in 3ms (next.js: 0.9ms, application-code: 2ms)
+ GET /api/practice-catalog 200 in 3.3s (next.js: 1.5ms, application-code: 3.3s)
+ GET /api/practice-catalog 200 in 3.7s (next.js: 1.4ms, application-code: 3.7s)
+ GET /reading/urban-beekeeping-ecosystems 200 in 681ms (next.js: 665ms, application-code: 16ms)
+ GET /api/practice-catalog 200 in 3.7s (next.js: 1.7ms, application-code: 3.7s)
+ GET /api/practice-catalog 200 in 3.6s (next.js: 1.8ms, application-code: 3.6s)
+ GET /reading/urban-beekeeping-ecosystems 200 in 49ms (next.js: 9ms, application-code: 40ms)
+ GET /api/practice-catalog 200 in 3.5s (next.js: 1.6ms, application-code: 3.5s)
+ GET /api/practice-catalog 200 in 3.9s (next.js: 1.9ms, application-code: 3.9s)

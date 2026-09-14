@@ -1,6 +1,32 @@
-.venv/
+# dependencies
+/node_modules
+/.pnpm-store
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# local env files
+.env*.local
 .env
-__pycache__/
-*.py[cod]
-ielts_progress.json
+
+# local authenticated browser profile
+.local/
+
+# cookie-only upstream session (never commit)
+/credential/
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# ide & os
+.DS_Store
+*.pem
 .cursor/
