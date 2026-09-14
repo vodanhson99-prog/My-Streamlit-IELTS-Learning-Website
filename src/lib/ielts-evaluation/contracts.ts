@@ -39,6 +39,7 @@ export interface Task2Rubric {
 }
 
 export interface EvaluationEvidence {
+  readonly type: "positive" | "negative"
   readonly quote: string
   readonly rationale: string
 }

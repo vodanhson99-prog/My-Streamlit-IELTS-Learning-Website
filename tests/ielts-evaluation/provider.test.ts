@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { requestGroq } from "../../src/lib/ai"
-import { AIProviderError, createGroqProvider } from "../../src/lib/ai/provider"
+import { AIProviderError, completeStructured, createGroqProvider } from "../../src/lib/ai/provider"
 
 const request = {
   messages: [{ role: "user", content: "Evaluate this essay." }],
@@ -80,6 +80,48 @@ describe("createGroqProvider", () => {
     const error = await normalizedError(createGroqProvider({ apiKey: "secret", fetcher: rejectingFetcher(new Error("secret network diagnostics")) }))
     expect(error).toMatchObject({ code: "network", retryable: true, browserSafe: false })
     expect(error).not.toHaveProperty("cause")
+  })
+})
+
+describe("completeStructured", () => {
+  it("uses StructuredAiRequest and parses provider text at the provider boundary", async () => {
+    const provider = {
+      complete: vi.fn(async () => ({ text: '{"band":7}', provider: "groq" as const })),
+    }
+    const parse = vi.fn((raw: unknown) => {
+      if (typeof raw !== "object" || raw === null || !("band" in raw)) throw new Error("invalid")
+      return raw as { band: number }
+    })
+
+    await expect(completeStructured(provider, {
+      system: "system",
+      user: "user",
+      temperature: 0.1,
+      maxTokens: 200,
+      schema: { type: "object" },
+      parse,
+    })).resolves.toEqual({ data: { band: 7 }, provider: "groq" })
+
+    expect(provider.complete).toHaveBeenCalledWith({
+      messages: [{ role: "system", content: "system" }, { role: "user", content: "user" }],
+      temperature: 0.1,
+      maxTokens: 200,
+    })
+    expect(parse).toHaveBeenCalledWith({ band: 7 })
+  })
+
+  it("rejects malformed structured JSON", async () => {
+    const provider = {
+      complete: vi.fn(async () => ({ text: "not JSON", provider: "groq" as const })),
+    }
+    await expect(completeStructured(provider, {
+      system: "system",
+      user: "user",
+      temperature: 0.1,
+      maxTokens: 200,
+      schema: {},
+      parse: (raw) => raw,
+    })).rejects.toThrow()
   })
 })
 

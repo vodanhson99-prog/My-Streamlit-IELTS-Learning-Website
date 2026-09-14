@@ -11,6 +11,7 @@ const bandSchema = z.number().int().min(0).max(9)
 const nonEmptyText = z.string().trim().min(1)
 
 const evidenceSchema = z.object({
+  type: z.enum(["positive", "negative"]),
   quote: nonEmptyText,
   rationale: nonEmptyText,
 }).strict()

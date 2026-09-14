@@ -4,6 +4,7 @@ import type {
   AICompletionResult,
   AIProvider,
   AIProviderErrorCode,
+  StructuredAiRequest,
 } from "./contracts"
 
 const groqResponseSchema = z.object({
@@ -106,6 +107,21 @@ export function createGroqProvider(options: GroqProviderOptions = {}): AIProvide
       return { text: parsed.data.choices[0].message.content, provider: "groq" }
     },
   }
+}
+
+export async function completeStructured<T>(
+  provider: AIProvider,
+  request: StructuredAiRequest<T>,
+): Promise<{ readonly data: T; readonly provider: AICompletionResult["provider"] }> {
+  const result = await provider.complete({
+    messages: [
+      { role: "system", content: request.system },
+      { role: "user", content: request.user },
+    ],
+    maxTokens: request.maxTokens,
+    temperature: request.temperature,
+  })
+  return { data: request.parse(JSON.parse(result.text)), provider: result.provider }
 }
 
 export function createEnvironmentGroqProvider(): AIProvider {

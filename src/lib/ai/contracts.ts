@@ -31,3 +31,12 @@ export interface AICompletionResult {
 export interface AIProvider {
   complete(request: AICompletionRequest): Promise<AICompletionResult>
 }
+
+export interface StructuredAiRequest<T> {
+  readonly system: string
+  readonly user: string
+  readonly temperature: number
+  readonly maxTokens: number
+  readonly schema: unknown
+  readonly parse: (raw: unknown) => T
+}
