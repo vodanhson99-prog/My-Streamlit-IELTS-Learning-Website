@@ -19,6 +19,9 @@
 # cookie-only upstream session (never commit)
 /credential/
 
+# local critique / temp server logs
+.tmp-critique-server.*
+
 # vercel
 .vercel
 
