@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server"
-import { requestGroq } from "@/lib/ai"
-import { heuristicWritingFeedback, type WritingFeedbackResult } from "@/lib/ielts"
+import { createGroqProvider } from "@/lib/ai/provider"
+import { evaluateTask2 } from "@/lib/ielts-evaluation/evaluate-task2"
+import { evaluateTask1 } from "@/lib/ielts-evaluation/evaluate-task1"
+import { resolveAnnotations } from "@/lib/ielts-evaluation/annotations/resolver"
+import { generateCoaching } from "@/lib/ielts-evaluation/coaching/generate-coaching"
+import type { WritingFeedbackResult } from "@/lib/ielts"
+import type { ResolvedAnnotation } from "@/lib/ielts-evaluation/contracts"
 
 export async function POST(request: Request) {
   try {
@@ -8,98 +13,106 @@ export async function POST(request: Request) {
     const essay = String(body.essay || "").trim()
     const prompt = String(body.prompt || "").trim()
     const taskType = body.taskType === "task1" ? "task1" : "task2"
+    const testType = body.testType === "general_training" ? "general_training" : "academic"
+    const targetBand = typeof body.targetBand === "number" ? body.targetBand : undefined
 
-    if (!essay) {
-      return NextResponse.json({ error: "Write something first." }, { status: 400 })
+    if (!essay || essay.length < 20) {
+      return NextResponse.json(
+        { error: "Essay must contain at least 20 characters." },
+        { status: 400 },
+      )
     }
 
-    const hasApiKey = Boolean(process.env.GROQ_API_KEY?.trim())
-
-    if (hasApiKey) {
-      try {
-        const systemPrompt =
-          `You are an official IELTS Writing examiner evaluating an IELTS ${taskType.toUpperCase()} response. Grade the essay against the four IELTS band criteria: ` +
-          "Task Achievement, Coherence & Cohesion, Lexical Resource, and Grammatical Range & Accuracy. " +
-          "Respond ONLY in raw JSON, no markdown fences, no preamble, in this exact shape: " +
-          '{"band_estimate": <number 1-9, one decimal place>, ' +
-          '"task_achievement_band": <number 1-9, one decimal place>, ' +
-          '"coherence_cohesion_band": <number 1-9, one decimal place>, ' +
-          '"lexical_resource_band": <number 1-9, one decimal place>, ' +
-          '"grammar_band": <number 1-9, one decimal place>, ' +
-          '"task_achievement": "<one sentence>", "coherence_cohesion": "<one sentence>", ' +
-          '"lexical_resource": "<one sentence>", "grammar": "<one sentence>", ' +
-          '"overall_tip": "<one sentence, the single most useful thing to fix next>"}'
-
-        const raw = await requestGroq(
-          [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: `Prompt: ${prompt}\n\nEssay:\n${essay}` },
-          ],
-          500,
-          0.3
-        )
-
-        const sanitized = raw
-          .trim()
-          .replace(/^```json/i, "")
-          .replace(/^```/, "")
-          .replace(/```$/, "")
-          .trim()
-
-        const ai = JSON.parse(sanitized)
-
-        const result: WritingFeedbackResult = {
-          source: "ai",
-          band_estimate: Number(ai.band_estimate) || 5.0,
-          criterion_bands: {
-            task_achievement_band: Number(ai.task_achievement_band) || null,
-            coherence_cohesion_band: Number(ai.coherence_cohesion_band) || null,
-            lexical_resource_band: Number(ai.lexical_resource_band) || null,
-            grammar_band: Number(ai.grammar_band) || null,
-          },
-          criteria_sentences: [
-            ["Task Achievement", String(ai.task_achievement || "")],
-            ["Coherence & Cohesion", String(ai.coherence_cohesion || "")],
-            ["Lexical Resource", String(ai.lexical_resource || "")],
-            ["Grammar", String(ai.grammar || "")],
-          ],
-          overall_tip: String(ai.overall_tip || "Apply examiner advice to your next draft."),
-        }
-
-        return NextResponse.json(result)
-      } catch (err: unknown) {
-        const fallback = heuristicWritingFeedback(essay, taskType)
-        const errorMsg = err instanceof Error ? err.message : "AI evaluation failed"
-        const result: WritingFeedbackResult = {
-          source: "heuristic",
-          band_estimate: fallback.band_estimate,
-          criterion_bands: null,
-          criteria_sentences: [
-            ["Word count", `${fallback.word_count} words (${fallback.sentence_count} sentences)`],
-            ["Heuristic notes", fallback.notes.join(" · ")],
-          ],
-          overall_tip: "Heuristic is rough — server AI grading provides full IELTS-criteria feedback.",
-          fallback_error: errorMsg,
-        }
-        return NextResponse.json(result)
-      }
+    if (!prompt) {
+      return NextResponse.json(
+        { error: "Task prompt is required." },
+        { status: 400 },
+      )
     }
 
-    const heuristic = heuristicWritingFeedback(essay, taskType)
-    const result: WritingFeedbackResult = {
-      source: "heuristic",
-      band_estimate: heuristic.band_estimate,
-      criterion_bands: null,
-      criteria_sentences: [
-        ["Word count", `${heuristic.word_count} words (${heuristic.sentence_count} sentences)`],
-        ["Heuristic notes", heuristic.notes.join(" · ")],
-      ],
-      overall_tip: "Heuristic is rough — configure GROQ_API_KEY for full examiner-level feedback.",
+    const apiKey = process.env.GROQ_API_KEY?.trim()
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          error: "AI evaluation service is not configured (missing GROQ_API_KEY). Please configure API key to evaluate.",
+          retryable: false,
+        },
+        { status: 503 },
+      )
     }
 
-    return NextResponse.json(result)
+    const provider = createGroqProvider({ apiKey })
+
+    const evaluation =
+      taskType === "task1"
+        ? await evaluateTask1({
+            task: { testType, prompt },
+            essay,
+            provider,
+          })
+        : await evaluateTask2({
+            task: { testType, prompt },
+            essay,
+            provider,
+          })
+
+    if (evaluation.status === "failed") {
+      return NextResponse.json(
+        {
+          error: evaluation.error,
+          retryable: true,
+          failedCriteria: evaluation.failedCriteria,
+        },
+        { status: 502 },
+      )
+    }
+
+    // Resolve annotations server-side
+    const allResolvedAnnotations: ResolvedAnnotation[] = []
+    for (const c of evaluation.criteria) {
+      const resolved = resolveAnnotations(c.annotationCandidates, essay, c.criterionId)
+      allResolvedAnnotations.push(...resolved)
+    }
+
+    // Generate post-lock coaching
+    const coaching = generateCoaching(evaluation, allResolvedAnnotations, targetBand as any)
+
+    // Build backward-compatible fields + rich V1 fields
+    const criteriaSentences: [string, string][] = evaluation.criteria.map((c) => {
+      const topPositive = c.evidence.find((e) => e.type === "positive")?.rationale || ""
+      return [c.criterionId, `Band ${c.band}: ${topPositive || c.blockers[0] || ""}`]
+    })
+
+    const criterionBandsObj: Record<string, number> = {}
+    for (const c of evaluation.criteria) {
+      criterionBandsObj[`${c.criterionId.replace(/-/g, "_")}_band`] = c.band
+    }
+
+    const legacyPayload: WritingFeedbackResult = {
+      source: "ai",
+      band_estimate: evaluation.overallBand,
+      criterion_bands: {
+        task_achievement_band:
+          criterionBandsObj["task_achievement_band"] || criterionBandsObj["task_response_band"] || null,
+        coherence_cohesion_band: criterionBandsObj["coherence_cohesion_band"] || null,
+        lexical_resource_band: criterionBandsObj["lexical_resource_band"] || null,
+        grammar_band: criterionBandsObj["grammatical_range_accuracy_band"] || null,
+      },
+      criteria_sentences: criteriaSentences,
+      overall_tip: coaching.priorities[0]?.actionItem || evaluation.summary,
+    }
+
+    return NextResponse.json({
+      ...legacyPayload,
+      version: "writing-evaluation-v1",
+      taskType,
+      testType,
+      evaluation,
+      resolvedAnnotations: allResolvedAnnotations,
+      coaching,
+    })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Unexpected server error"
-    return NextResponse.json({ error: msg }, { status: 500 })
+    const msg = error instanceof Error ? error.message : "Unexpected evaluation server error"
+    return NextResponse.json({ error: msg, retryable: true }, { status: 500 })
   }
 }
