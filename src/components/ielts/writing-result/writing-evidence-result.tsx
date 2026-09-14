@@ -3,12 +3,13 @@
 import { useState } from "react"
 import type { TestResultPayload } from "@/lib/ielts"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, RotateCcw } from "lucide-react"
+import { ArrowLeft, RotateCcw, Bot } from "lucide-react"
 import { ScoreOverview } from "./score-overview"
 import { CriterionCard } from "./criterion-card"
 import { AnnotatedEssay } from "./annotated-essay"
 import { AnnotationDetail } from "./annotation-detail"
 import { NextBandBlockers } from "./next-band-blockers"
+import { TutorPanel } from "../tutor/tutor-panel"
 
 interface WritingEvidenceResultProps {
   result: TestResultPayload
@@ -21,10 +22,11 @@ export function WritingEvidenceResult({
   result,
   onRetake,
   onBackToPanel,
-  onAskTutor,
 }: WritingEvidenceResultProps) {
   const details = result.writingDetails
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | undefined>(undefined)
+  const [isTutorOpen, setIsTutorOpen] = useState(false)
+  const [focusedTutorAnnotationId, setFocusedTutorAnnotationId] = useState<string | undefined>(undefined)
 
   const selectedAnnotation = details?.resolvedAnnotations?.find(
     (a: any) => a.id === selectedAnnotationId,
@@ -32,8 +34,13 @@ export function WritingEvidenceResult({
 
   const criteria = details?.evaluation?.criteria || []
 
+  const handleAskTutor = (annotationId: string) => {
+    setFocusedTutorAnnotationId(annotationId)
+    setIsTutorOpen(true)
+  }
+
   return (
-    <div className="flex flex-col gap-5 my-6">
+    <div className="flex flex-col gap-5 my-6 relative">
       {/* Top action bar */}
       <div className="flex items-center justify-between">
         <Button
@@ -44,13 +51,23 @@ export function WritingEvidenceResult({
         >
           <ArrowLeft className="size-3.5 mr-1.5" /> Back to library
         </Button>
-        <Button
-          size="sm"
-          onClick={onRetake}
-          className="h-8 text-xs font-medium rounded-[2px]"
-        >
-          <RotateCcw className="size-3.5 mr-1.5" /> Retake this test
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsTutorOpen(true)}
+            className="h-8 text-xs font-mono rounded-[2px] border-border gap-1.5"
+          >
+            <Bot className="size-3.5" /> Ask IELTS Tutor
+          </Button>
+          <Button
+            size="sm"
+            onClick={onRetake}
+            className="h-8 text-xs font-medium rounded-[2px]"
+          >
+            <RotateCcw className="size-3.5 mr-1.5" /> Retake this test
+          </Button>
+        </div>
       </div>
 
       {/* Main Score Overview */}
@@ -78,7 +95,7 @@ export function WritingEvidenceResult({
           <div className="lg:col-span-1">
             <AnnotationDetail
               annotation={selectedAnnotation}
-              onAskTutor={onAskTutor}
+              onAskTutor={handleAskTutor}
             />
           </div>
         </div>
@@ -102,6 +119,15 @@ export function WritingEvidenceResult({
           </div>
         </div>
       )}
+
+      {/* Tutor Panel Drawer */}
+      <TutorPanel
+        slug={result.slug}
+        writingDetails={details}
+        isOpen={isTutorOpen}
+        onClose={() => setIsTutorOpen(false)}
+        focusedAnnotationId={focusedTutorAnnotationId}
+      />
     </div>
   )
 }
