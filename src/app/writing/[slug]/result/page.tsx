@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { loadTestResult, clearPracticeSession } from "@/lib/practice-session"
 import { TestResultPayload } from "@/lib/ielts"
 import { TestResultView } from "@/components/ielts/test-result-view"
+import { WritingEvidenceResult } from "@/components/ielts/writing-result/writing-evidence-result"
 import { ClientHydration } from "@/components/ielts/client-hydration"
 
 interface PageProps {
@@ -51,14 +52,25 @@ function WritingResultContent({
   return (
     <>
       <main className="max-w-5xl mx-auto w-full px-4 sm:px-6 py-6">
-        <TestResultView
-          result={result}
-          onBackToPanel={() => router.push("/writing")}
-          onRetake={() => {
-            clearPracticeSession("writing", slug)
-            router.push(`/writing/${slug}`)
-          }}
-        />
+        {result.writingDetails?.evaluation ? (
+          <WritingEvidenceResult
+            result={result}
+            onBackToPanel={() => router.push("/writing")}
+            onRetake={() => {
+              clearPracticeSession("writing", slug)
+              router.push(`/writing/${slug}`)
+            }}
+          />
+        ) : (
+          <TestResultView
+            result={result}
+            onBackToPanel={() => router.push("/writing")}
+            onRetake={() => {
+              clearPracticeSession("writing", slug)
+              router.push(`/writing/${slug}`)
+            }}
+          />
+        )}
       </main>
     </>
   )

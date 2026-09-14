@@ -159,6 +159,15 @@ export interface TestResultPayload {
   criteriaSentences?: [string, string][]
   overallTip?: string
   source?: "ai" | "heuristic" | "direct"
+  writingDetails?: {
+    taskType?: "task1" | "task2"
+    testType?: "academic" | "general_training"
+    essay?: string
+    prompt?: string
+    evaluation?: any
+    resolvedAnnotations?: any[]
+    coaching?: any
+  }
 }
 
 export function generateTitleSlug(title: string, suffix?: string): string {

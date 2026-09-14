@@ -68,6 +68,17 @@ export default function WritingSlugPage({ params }: PageProps) {
                 criteriaSentences: feedback.criteria_sentences,
                 overallTip: feedback.overall_tip,
                 source: feedback.source,
+                writingDetails: (feedback as any).evaluation
+                  ? {
+                      taskType: (feedback as any).taskType,
+                      testType: (feedback as any).testType,
+                      essay: (feedback as any).essay,
+                      prompt: (feedback as any).prompt,
+                      evaluation: (feedback as any).evaluation,
+                      resolvedAnnotations: (feedback as any).resolvedAnnotations,
+                      coaching: (feedback as any).coaching,
+                    }
+                  : undefined,
               })
               router.replace(`/writing/${test.slug}/result`)
             }}

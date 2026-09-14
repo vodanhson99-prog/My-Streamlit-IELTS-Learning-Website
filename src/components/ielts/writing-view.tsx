@@ -119,7 +119,12 @@ export function WritingView({ test, onComplete }: WritingViewProps) {
       }
 
       clearPracticeSession("writing", test.slug)
-      onComplete(data)
+      onComplete({
+        ...data,
+        essay,
+        prompt: currentPrompt,
+        taskType: activeTask,
+      })
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : "Error evaluating essay")
     } finally {
@@ -195,11 +200,11 @@ export function WritingView({ test, onComplete }: WritingViewProps) {
             <h2 className="text-sm font-semibold text-foreground">
               {activeTask === "task1" ? "Task 1 Prompt" : "Task 2 Prompt"}
             </h2>
-            <span className="text-[11px] font-mono text-muted-foreground">
+            <span className="text-[10px] font-mono text-muted-foreground">
               Min target: {minWords} words
             </span>
           </div>
-          <p className="text-[13px] font-serif leading-relaxed text-foreground/90 whitespace-pre-line pt-1">
+          <p className="text-xs font-serif leading-relaxed text-foreground/90 whitespace-pre-line pt-1">
             {currentPrompt}
           </p>
         </section>
@@ -215,7 +220,7 @@ export function WritingView({ test, onComplete }: WritingViewProps) {
               <span className={`font-semibold ${isTargetMet ? "text-emerald-600" : "text-foreground"}`}>
                 {words} words
               </span>
-              <span className="text-muted-foreground text-[11px]">
+              <span className="text-muted-foreground text-[10px]">
                 {wordsRemaining > 0 ? `(${wordsRemaining} more to minimum)` : "(Target met)"}
               </span>
             </div>
@@ -240,7 +245,7 @@ export function WritingView({ test, onComplete }: WritingViewProps) {
           )}
 
           <div className="pt-3 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
-            <span className="text-[11px] font-mono text-muted-foreground">
+            <span className="text-[10px] font-mono text-muted-foreground">
               Saved on this device
             </span>
 
