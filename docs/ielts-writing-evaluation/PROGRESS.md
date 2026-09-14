@@ -13,7 +13,9 @@ This file records where implementation stopped so any agent/human can continue w
 
 Replace the current single loosely-validated LLM writing grade with a Task 2-only evaluation harness: four isolated graders → evidence validation → optional boundary challenger → deterministic aggregation → score lock → coaching → Tutor Agent → offline eval harness.
 
-Full plan: [`MASTER-PLAN.md`](./MASTER-PLAN.md)
+Full plan: [`MASTER-PLAN.md`](./MASTER-PLAN.md)  
+Superpowers plan: [`../superpowers/plans/2026-09-14-ielts-writing-evaluation-harness.md`](../superpowers/plans/2026-09-14-ielts-writing-evaluation-harness.md)  
+SDD ledger: [`../superpowers/sdd/progress.md`](../superpowers/sdd/progress.md)
 
 ---
 

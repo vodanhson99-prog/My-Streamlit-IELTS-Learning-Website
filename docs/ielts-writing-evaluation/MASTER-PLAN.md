@@ -2,7 +2,9 @@
 
 > **For agentic workers:** This is an execution plan, not a brainstorming request. Work phase-by-phase, use TDD where practical, verify every phase before moving forward, and commit after each independently working task. Do not redesign unrelated parts of the application.
 >
-> **Progress snapshot:** see [`PROGRESS.md`](./PROGRESS.md)
+> **Progress snapshot:** see [`PROGRESS.md`](./PROGRESS.md)  
+> **Superpowers plan (checkbox tasks):** [`../superpowers/plans/2026-09-14-ielts-writing-evaluation-harness.md`](../superpowers/plans/2026-09-14-ielts-writing-evaluation-harness.md)  
+> **SDD ledger:** [`../superpowers/sdd/progress.md`](../superpowers/sdd/progress.md)
 
 ## Goal
 
