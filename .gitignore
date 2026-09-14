@@ -13,12 +13,6 @@
 .env*.local
 .env
 
-# local authenticated browser profile
-.local/
-
-# cookie-only upstream session (never commit)
-/credential/
-
 # local critique / temp server logs
 .tmp-critique-server.*
 
@@ -32,5 +26,3 @@ next-env.d.ts
 # ide & os
 .DS_Store
 *.pem
-.cursor/
-.superpowers/
