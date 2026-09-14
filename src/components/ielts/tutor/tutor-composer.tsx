@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Send, Sparkles } from "lucide-react"
 
 interface TutorComposerProps {
   onSend: (message: string) => void

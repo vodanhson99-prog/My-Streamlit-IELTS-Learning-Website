@@ -159,15 +159,7 @@ export interface TestResultPayload {
   criteriaSentences?: [string, string][]
   overallTip?: string
   source?: "ai" | "heuristic" | "direct"
-  writingDetails?: {
-    taskType?: "task1" | "task2"
-    testType?: "academic" | "general_training"
-    essay?: string
-    prompt?: string
-    evaluation?: any
-    resolvedAnnotations?: any[]
-    coaching?: any
-  }
+  writingDetails?: WritingDetailsPayload
 }
 
 export function generateTitleSlug(title: string, suffix?: string): string {
@@ -219,6 +211,20 @@ export interface CriterionBands {
   grammar_band?: number | null
 }
 
+import type { LockedTask2Evaluation, ResolvedAnnotation } from "@/lib/ielts-evaluation/contracts"
+import type { LockedTask1Evaluation } from "@/lib/ielts-evaluation/task1/contracts"
+import type { WritingCoaching } from "@/lib/ielts-evaluation/coaching/generate-coaching"
+
+export interface WritingDetailsPayload {
+  taskType?: "task1" | "task2"
+  testType?: "academic" | "general_training"
+  essay?: string
+  prompt?: string
+  evaluation?: LockedTask2Evaluation | LockedTask1Evaluation
+  resolvedAnnotations?: readonly ResolvedAnnotation[]
+  coaching?: WritingCoaching
+}
+
 export interface WritingProgressRecord extends CriterionBands {
   timestamp: string
   band_estimate: number
@@ -241,6 +247,13 @@ export interface WritingFeedbackResult {
   criteria_sentences: [string, string][]
   overall_tip: string
   fallback_error?: string | null
+  taskType?: "task1" | "task2"
+  testType?: "academic" | "general_training"
+  essay?: string
+  prompt?: string
+  evaluation?: LockedTask2Evaluation | LockedTask1Evaluation
+  resolvedAnnotations?: readonly ResolvedAnnotation[]
+  coaching?: WritingCoaching
 }
 
 export interface HeuristicAnalysis {

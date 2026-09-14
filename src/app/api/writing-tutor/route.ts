@@ -22,6 +22,13 @@ export async function POST(request: Request) {
       )
     }
 
+    if (userMessage.length > 2000) {
+      return NextResponse.json(
+        { error: "Message exceeds maximum length of 2,000 characters." },
+        { status: 400 },
+      )
+    }
+
     const apiKey = process.env.GROQ_API_KEY?.trim()
     if (!apiKey) {
       return NextResponse.json(

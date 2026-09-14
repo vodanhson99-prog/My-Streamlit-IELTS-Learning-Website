@@ -6,7 +6,6 @@ import type {
   AdjudicationRecord,
   CriterionEvaluation,
   IeltsBand,
-  IeltsTask2CriterionId,
   Task2DescriptorId,
   Task2Rubric,
 } from "../contracts"

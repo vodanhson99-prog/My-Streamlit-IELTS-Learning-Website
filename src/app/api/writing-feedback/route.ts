@@ -23,9 +23,23 @@ export async function POST(request: Request) {
       )
     }
 
+    if (essay.length > 10000) {
+      return NextResponse.json(
+        { error: "Essay exceeds maximum allowed length of 10,000 characters." },
+        { status: 400 },
+      )
+    }
+
     if (!prompt) {
       return NextResponse.json(
         { error: "Task prompt is required." },
+        { status: 400 },
+      )
+    }
+
+    if (prompt.length > 3000) {
+      return NextResponse.json(
+        { error: "Prompt exceeds maximum allowed length of 3,000 characters." },
         { status: 400 },
       )
     }
@@ -75,7 +89,7 @@ export async function POST(request: Request) {
     }
 
     // Generate post-lock coaching
-    const coaching = generateCoaching(evaluation, allResolvedAnnotations, targetBand as any)
+    const coaching = generateCoaching(evaluation, allResolvedAnnotations, targetBand)
 
     // Build backward-compatible fields + rich V1 fields
     const criteriaSentences: [string, string][] = evaluation.criteria.map((c) => {

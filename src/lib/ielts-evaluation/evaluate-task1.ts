@@ -1,6 +1,6 @@
 import type { AIProvider } from "../ai/contracts"
 import { EVALUATION_SCHEMA_VERSION } from "./constants"
-import type { EvaluationStability, IeltsHalfBand } from "./contracts"
+import type { CriterionEvaluation, EvaluationStability, IeltsHalfBand } from "./contracts"
 import { calculateIeltsHalfBand } from "./scoring/aggregate"
 import { validateCriterionEvidence } from "./validation/evidence"
 import {
@@ -97,7 +97,7 @@ export async function evaluateTask1(input: EvaluateTask1Input): Promise<Task1Eva
 
   // Validate evidence quotes against essay
   for (const c of criteria) {
-    const valid = validateCriterionEvidence(c as any, essay)
+    const valid = validateCriterionEvidence(c as unknown as CriterionEvaluation, essay)
     if (!valid.valid) {
       return {
         status: "failed",

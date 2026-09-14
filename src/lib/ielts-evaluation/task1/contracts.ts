@@ -64,7 +64,7 @@ export interface LockedTask1Evaluation {
   readonly overallBand: IeltsHalfBand
   readonly criteria: readonly Task1CriterionEvaluation[]
   readonly stability: EvaluationStability
-  readonly adjudicationRecords: readonly any[]
+  readonly adjudicationRecords: readonly unknown[]
   readonly summary: string
 }
 

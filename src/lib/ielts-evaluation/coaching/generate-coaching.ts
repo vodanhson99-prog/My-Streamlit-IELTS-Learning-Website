@@ -1,6 +1,5 @@
 import type {
   CriterionEvaluation,
-  IeltsBand,
   IeltsHalfBand,
   LockedTask2Evaluation,
   ResolvedAnnotation,

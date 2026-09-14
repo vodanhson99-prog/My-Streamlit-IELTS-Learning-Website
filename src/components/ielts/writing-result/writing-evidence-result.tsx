@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import type { TestResultPayload } from "@/lib/ielts"
+import type { TestResultPayload, WritingDetailsPayload } from "@/lib/ielts"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, RotateCcw, Bot } from "lucide-react"
 import { ScoreOverview } from "./score-overview"
@@ -10,6 +10,7 @@ import { AnnotatedEssay } from "./annotated-essay"
 import { AnnotationDetail } from "./annotation-detail"
 import { NextBandBlockers } from "./next-band-blockers"
 import { TutorPanel } from "../tutor/tutor-panel"
+import type { ResolvedAnnotation } from "@/lib/ielts-evaluation/contracts"
 
 interface WritingEvidenceResultProps {
   result: TestResultPayload
@@ -23,13 +24,13 @@ export function WritingEvidenceResult({
   onRetake,
   onBackToPanel,
 }: WritingEvidenceResultProps) {
-  const details = result.writingDetails
+  const details: WritingDetailsPayload | undefined = result.writingDetails
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | undefined>(undefined)
   const [isTutorOpen, setIsTutorOpen] = useState(false)
   const [focusedTutorAnnotationId, setFocusedTutorAnnotationId] = useState<string | undefined>(undefined)
 
   const selectedAnnotation = details?.resolvedAnnotations?.find(
-    (a: any) => a.id === selectedAnnotationId,
+    (a: ResolvedAnnotation) => a.id === selectedAnnotationId,
   )
 
   const criteria = details?.evaluation?.criteria || []
@@ -106,7 +107,7 @@ export function WritingEvidenceResult({
         <div className="flex flex-col gap-3 pt-2">
           <h3 className="text-sm font-semibold text-foreground">Detailed Criterion Breakdown</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {criteria.map((c: any) => (
+            {criteria.map((c) => (
               <CriterionCard
                 key={c.criterionId}
                 criterionId={c.criterionId}

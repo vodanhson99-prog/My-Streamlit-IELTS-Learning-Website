@@ -1,15 +1,16 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Bot, X, MessageSquare } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import type { TutorMessage } from "@/lib/ielts-tutor/contracts"
+import type { WritingDetailsPayload } from "@/lib/ielts"
+import type { ResolvedAnnotation } from "@/lib/ielts-evaluation/contracts"
 import { TutorMessageItem } from "./tutor-message"
 import { TutorComposer } from "./tutor-composer"
 
 interface TutorPanelProps {
   slug: string
-  writingDetails: any
+  writingDetails?: WritingDetailsPayload
   isOpen: boolean
   onClose: () => void
   focusedAnnotationId?: string
@@ -48,23 +49,8 @@ export function TutorPanel({
     }
   }, [messages, storageKey])
 
-  // Handle auto-focus prompt when user selects an annotation
-  useEffect(() => {
-    if (focusedAnnotationId && writingDetails?.resolvedAnnotations) {
-      const target = writingDetails.resolvedAnnotations.find(
-        (a: any) => a.id === focusedAnnotationId,
-      )
-      if (target) {
-        handleSendMessage(
-          `Can you explain the feedback on "${target.quote}" (${target.label}): ${target.rationale}?`,
-          target,
-        )
-      }
-    }
-  }, [focusedAnnotationId])
-
-  const handleSendMessage = async (userText: string, specificAnnotation?: any) => {
-    if (!userText.trim() || isLoading) return
+  const handleSendMessage = useCallback(async (userText: string, specificAnnotation?: ResolvedAnnotation) => {
+    if (!userText.trim() || isLoading || !writingDetails?.evaluation) return
 
     const newMsg: TutorMessage = { role: "user", content: userText }
     const updated = [...messages, newMsg]
@@ -75,7 +61,7 @@ export function TutorPanel({
       const selectedAnnotation =
         specificAnnotation ||
         writingDetails?.resolvedAnnotations?.find(
-          (a: any) => a.id === focusedAnnotationId,
+          (a) => a.id === focusedAnnotationId,
         )
 
       const res = await fetch("/api/writing-tutor", {
@@ -108,7 +94,17 @@ export function TutorPanel({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [focusedAnnotationId, isLoading, messages, writingDetails])
+
+  // Calculate initial prompt derived directly during render (Rule 5.1: Calculate Derived State During Rendering)
+  const targetAnnotation =
+    focusedAnnotationId && writingDetails?.resolvedAnnotations
+      ? writingDetails.resolvedAnnotations.find((a) => a.id === focusedAnnotationId)
+      : undefined
+
+  const initialPrompt = targetAnnotation
+    ? `Can you explain the feedback on "${targetAnnotation.quote}" (${targetAnnotation.label}): ${targetAnnotation.rationale}?`
+    : undefined
 
   if (!isOpen) return null
 
@@ -159,7 +155,11 @@ export function TutorPanel({
       </div>
 
       {/* Composer */}
-      <TutorComposer onSend={handleSendMessage} disabled={isLoading} />
+      <TutorComposer
+        onSend={handleSendMessage}
+        disabled={isLoading}
+        placeholder={initialPrompt || "Ask tutor about feedback or grammar..."}
+      />
     </aside>
   )
 }

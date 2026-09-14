@@ -7,7 +7,6 @@ import type {
   IeltsTask1CriterionId,
   Task1CriterionEvaluation,
   Task1Rubric,
-  Task1RubricCriterion,
 } from "../contracts"
 
 export interface Task1GraderInput {

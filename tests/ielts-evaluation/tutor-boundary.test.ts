@@ -89,10 +89,10 @@ describe("askTutor", () => {
   })
 
   it("throws if evaluation is not locked", async () => {
-    const unlocked = { ...dummyEvaluation, locked: false }
+    const unlocked = Object.freeze({ ...dummyEvaluation, locked: false }) as unknown as LockedTask2Evaluation
     await expect(
       askTutor(dummyProvider, {
-        evaluation: unlocked as any,
+        evaluation: unlocked,
         essay: "Essay",
         prompt: "Prompt",
         history: [],

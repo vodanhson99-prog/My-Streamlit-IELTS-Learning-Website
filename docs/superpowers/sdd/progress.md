@@ -12,10 +12,19 @@ Human snapshot: `docs/ielts-writing-evaluation/PROGRESS.md`
 - Task 1: complete (commits `f08e807`..`0dc8d4f`, review clean after harden)
 - Task 2: complete (commit `f6dddc0`, review clean, Step 6 closed)
 - Task 3: complete (orchestration, retry-once, evidence validation, challenger, deterministic aggregation, score lock)
+- Task 4: Annotation resolution complete (`feat: add evidence annotation resolution`)
+- Task 5: Separate Task 1 pipeline complete (`feat: add separate IELTS Task 1 evaluation pipeline`)
+- Task 6: Post-lock coaching complete (`feat: add IELTS post-grading coaching`)
+- Task 7: API integration complete (`feat: integrate IELTS evaluation API`)
+- Task 8: Result UI complete (`feat: add evidence-based IELTS result UI`)
+- Task 9: Tutor Agent backend complete (`feat: add IELTS Tutor Agent`)
+- Task 10: Tutor UI complete (`feat: add IELTS Tutor experience`)
+- Task 11: Offline eval harness complete (`feat: add IELTS grader evaluation harness`)
+- Task 12: Hardening and final gates complete (`chore: harden IELTS evaluation pipeline`)
 
-## In progress / next
+## Status
 
-- Task 4: Annotation resolution — NEXT
+- All phases 1 through 11 complete, tested, built, linted, and verified.
 
 ## Notes
 

@@ -68,15 +68,15 @@ export default function WritingSlugPage({ params }: PageProps) {
                 criteriaSentences: feedback.criteria_sentences,
                 overallTip: feedback.overall_tip,
                 source: feedback.source,
-                writingDetails: (feedback as any).evaluation
+                writingDetails: feedback.evaluation
                   ? {
-                      taskType: (feedback as any).taskType,
-                      testType: (feedback as any).testType,
-                      essay: (feedback as any).essay,
-                      prompt: (feedback as any).prompt,
-                      evaluation: (feedback as any).evaluation,
-                      resolvedAnnotations: (feedback as any).resolvedAnnotations,
-                      coaching: (feedback as any).coaching,
+                      taskType: feedback.taskType,
+                      testType: feedback.testType,
+                      essay: feedback.essay,
+                      prompt: feedback.prompt,
+                      evaluation: feedback.evaluation,
+                      resolvedAnnotations: feedback.resolvedAnnotations,
+                      coaching: feedback.coaching,
                     }
                   : undefined,
               })

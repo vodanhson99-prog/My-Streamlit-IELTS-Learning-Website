@@ -87,7 +87,7 @@ export async function evaluateTask2(input: EvaluateTask2Input): Promise<Task2Eva
     try {
       const evaluation = await grader(graderInput)
       return { success: true, evaluation }
-    } catch (firstErr) {
+    } catch {
       try {
         const evaluation = await grader(graderInput)
         return { success: true, evaluation }
