@@ -25,7 +25,7 @@ export interface AICompletionRequest {
 
 export interface AICompletionResult {
   readonly text: string
-  readonly provider: "groq"
+  readonly provider: "groq" | "openai-compatible"
 }
 
 export interface AIProvider {

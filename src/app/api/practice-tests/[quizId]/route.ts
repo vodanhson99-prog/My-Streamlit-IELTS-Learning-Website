@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { FALLBACK_PRACTICE_TESTS } from "@/lib/fallback-catalog"
 import { fetchIot, IotSessionError, IOT_BASE_URL } from "@/lib/iot-session"
-import { parseAnswerMap, parsePracticeTestPage } from "@/lib/iot-parser"
+import { parseAnswerMap, parsePracticeTestPage, parseWritingTasks } from "@/lib/iot-parser"
 import type { PracticeTest, SkillType } from "@/lib/ielts"
 import type { QuestionAnswer } from "@/lib/ielts"
 
@@ -68,16 +68,48 @@ export async function GET(request: Request, context: RouteContext) {
     )
 
     if (skill === "writing") {
+      let writingTasks = test.writingTasks
+      // If source page lacked task1 or task2 prompts, attempt fetching questionsUrl fallback
+      if (!writingTasks || !writingTasks.task1Prompt || !writingTasks.task2Prompt) {
+        const questionsEndpoint = `${IOT_BASE_URL}/quiz-get-questions/${quizId}`
+        try {
+          const qResponse = await fetchIot(questionsEndpoint, { headers: { Accept: "text/html,application/json" } })
+          if (qResponse.ok) {
+            const rawBody = await qResponse.text()
+            let questionHtml = rawBody
+            try {
+              const json = JSON.parse(rawBody)
+              if (json && typeof json.html === "string") questionHtml = json.html
+              else if (json && typeof json.data === "string") questionHtml = json.data
+            } catch {
+              // Plain HTML string
+            }
+            const fallbackTasks = parseWritingTasks(questionHtml, url.toString())
+            if (fallbackTasks) {
+              writingTasks = {
+                task1Prompt: writingTasks?.task1Prompt || fallbackTasks.task1Prompt,
+                task2Prompt: writingTasks?.task2Prompt || fallbackTasks.task2Prompt,
+                task1MinWords: 150,
+                task2MinWords: 250,
+                task1ImageUrl: writingTasks?.task1ImageUrl || fallbackTasks.task1ImageUrl,
+                task1ImageAlt: writingTasks?.task1ImageAlt || fallbackTasks.task1ImageAlt,
+              }
+            }
+          }
+        } catch {
+          // Questions endpoint is optional fallback
+        }
+      }
+
+      if (!writingTasks || (!writingTasks.task1Prompt && !writingTasks.task2Prompt)) {
+        return NextResponse.json({ error: "Upstream writing test contains no parseable prompts." }, { status: 422 })
+      }
+
       return NextResponse.json({
         source: "live",
         test: {
           ...test,
-          writingTasks: test.writingTasks || {
-            task1Prompt: "Complete Academic/General Training Task 1.",
-            task2Prompt: "Complete Task 2 essay.",
-            task1MinWords: 150,
-            task2MinWords: 250,
-          },
+          writingTasks,
         },
       })
     }

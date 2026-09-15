@@ -87,7 +87,8 @@ export async function evaluateTask2(input: EvaluateTask2Input): Promise<Task2Eva
     try {
       const evaluation = await grader(graderInput)
       return { success: true, evaluation }
-    } catch {
+    } catch (firstErr) {
+      console.warn(`[writing-evaluation][task2][${criterionId}][attempt=1] ${firstErr instanceof Error ? firstErr.message : "unknown error"}`)
       try {
         const evaluation = await grader(graderInput)
         return { success: true, evaluation }

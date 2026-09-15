@@ -4,10 +4,16 @@ export const evalCaseSchema = z.object({
   id: z.string().min(1),
   taskType: z.enum(["task1", "task2"]),
   testType: z.enum(["academic", "general_training"]),
+  promptFamily: z.enum(["chart", "process", "map", "table", "letter", "opinion", "discussion", "advantages_disadvantages", "problem_solution", "two_part"]).optional(),
+  controlTag: z.string().optional(),
   prompt: z.string().min(1),
   essay: z.string().min(1),
   groundTruth: z.object({
     overallBand: z.number().min(0).max(9),
+    taskAchievementOrResponse: z.number().min(0).max(9).optional(),
+    coherenceAndCohesion: z.number().min(0).max(9).optional(),
+    lexicalResource: z.number().min(0).max(9).optional(),
+    grammaticalRangeAndAccuracy: z.number().min(0).max(9).optional(),
     criteriaBands: z.record(z.string(), z.number().min(0).max(9)).optional(),
   }),
 })
@@ -21,4 +27,5 @@ export interface EvalMetrics {
   overgradedCount: number
   undergradedCount: number
   exactMatchPct: number
+  criterionErrors?: Record<string, number>
 }

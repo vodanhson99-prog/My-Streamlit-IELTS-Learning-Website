@@ -72,12 +72,17 @@ export async function evaluateTask1(input: EvaluateTask1Input): Promise<Task1Eva
       try {
         const evaluation = await graders[id](graderInput)
         return { id, success: true as const, evaluation }
-      } catch {
+      } catch (firstErr) {
+        console.warn(`[writing-evaluation][task1][${id}][attempt=1] ${firstErr instanceof Error ? firstErr.message : "unknown error"}`)
         try {
           const evaluation = await graders[id](graderInput)
           return { id, success: true as const, evaluation }
         } catch (retryErr) {
-          return { id, success: false as const, error: String(retryErr) }
+          return {
+            id,
+            success: false as const,
+            error: retryErr instanceof Error ? retryErr.message : String(retryErr),
+          }
         }
       }
     }),

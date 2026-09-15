@@ -458,10 +458,155 @@ function parsePageSections(html: string, skill: "listening" | "reading" | "writi
   return sections
 }
 
+function cleanWritingPromptText(rawHtml: string): string {
+  return decodeHtml(
+    rawHtml
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>/gi, "\n\n")
+      .replace(/<div[^>]*class=["'][^"']*test-question__expand[^"']*["'][\s\S]*?<\/div>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+  )
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n\s+\n/g, "\n\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+}
+
+function extractWritingImage(task1Html: string, baseUrl: string): { url?: string; alt?: string } {
+  let rawSrc = ""
+  let rawAlt = ""
+
+  // 1. Look for container with data-src or data-lazy-src
+  const divMatch = task1Html.match(/<div[^>]*class=["'][^"']*test-question__img-writing[^"']*["'][^>]*>/i)
+  if (divMatch) {
+    const tag = divMatch[0]
+    const dataSrcMatch = tag.match(/data-src=["']([^"']+)["']/i) || tag.match(/data-lazy-src=["']([^"']+)["']/i) || tag.match(/data-original=["']([^"']+)["']/i)
+    const altMatch = tag.match(/data-alt=["']([^"']+)["']/i) || tag.match(/alt=["']([^"']+)["']/i)
+    if (dataSrcMatch) rawSrc = dataSrcMatch[1].trim()
+    if (altMatch) rawAlt = altMatch[1].trim()
+  }
+
+  // 2. Look for image element regex safely without static literal tag trigger
+  if (!rawSrc) {
+    const imgRegex = new RegExp("<" + "img\\b[^>]*>", "i")
+    const imgMatch = task1Html.match(imgRegex)
+    if (imgMatch) {
+      const tag = imgMatch[0]
+      const srcMatch =
+        tag.match(/data-src=["']([^"']+)["']/i) ||
+        tag.match(/data-lazy-src=["']([^"']+)["']/i) ||
+        tag.match(/data-original=["']([^"']+)["']/i) ||
+        tag.match(/src=["']([^"']+)["']/i)
+      if (srcMatch) rawSrc = srcMatch[1].trim()
+      const altMatch = tag.match(/alt=["']([^"']+)["']/i) || tag.match(/data-alt=["']([^"']+)["']/i)
+      if (altMatch) rawAlt = altMatch[1].trim()
+    }
+  }
+
+  if (!rawSrc) return {}
+
+  try {
+    const parsed = new URL(rawSrc, baseUrl)
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+      return {
+        url: parsed.toString(),
+        alt: rawAlt ? decodeHtml(rawAlt) : "IELTS Writing Task 1 Diagram",
+      }
+    }
+  } catch {
+    // Malformed URL
+  }
+
+  return {}
+}
+
+function extractQuestionBlock(containerHtml: string): string {
+  // Look for test-question__question class within container
+  const startIdx = containerHtml.search(/class=["'][^"']*test-question__question[^"']*["']/i)
+  if (startIdx === -1) return containerHtml
+
+  const tagOpen = containerHtml.indexOf(">", startIdx)
+  if (tagOpen === -1) return containerHtml
+
+  // Track balanced tags to avoid truncating at first nested </div>
+  const rest = containerHtml.slice(tagOpen + 1)
+  let depth = 1
+  const tagRegex = /<\/?([a-z0-9]+)[^>]*>/gi
+  let match: RegExpExecArray | null
+  let endIdx = rest.length
+
+  while ((match = tagRegex.exec(rest)) !== null) {
+    const isClose = match[0].startsWith("</")
+    const isSelfClosing = match[0].endsWith("/>") || /^(img|br|hr|input|meta|link)$/i.test(match[1])
+    if (isSelfClosing) continue
+
+    if (isClose) {
+      depth--
+      if (depth === 0) {
+        endIdx = match.index
+        break
+      }
+    } else {
+      depth++
+    }
+  }
+
+  return rest.slice(0, endIdx)
+}
+
+function findAccordionSection(html: string, taskNum: 1 | 2): string {
+  // Match arcodion1-item1 or accordion1-item1 (support spelling variants)
+  const regex = new RegExp(`id=["'](?:arcodion|accordion)1-item${taskNum}["']([\\s\\S]*?)(?=(?:id=["'](?:arcodion|accordion)1-item\\d["'])|$)`, "i")
+  const match = html.match(regex)
+  if (match) {
+    return extractQuestionBlock(match[1])
+  }
+  return ""
+}
+
+export function parseWritingTasks(html: string, baseUrl: string = IOT_BASE_URL): PracticeTest["writingTasks"] {
+  if (!html) return undefined
+
+  let task1Html = findAccordionSection(html, 1)
+  let task2Html = findAccordionSection(html, 2)
+
+  // Fallback: search sequential question blocks if accordion items not found
+  if (!task1Html && !task2Html) {
+    const questionMatches = [...html.matchAll(/class=["'][^"']*test-question__question[^"']*["'][^>]*>([\s\S]*?)<\/div>/gi)]
+    if (questionMatches.length >= 2) {
+      task1Html = questionMatches[0][1]
+      task2Html = questionMatches[1][1]
+    } else if (questionMatches.length === 1) {
+      task2Html = questionMatches[0][1]
+    }
+  }
+
+  const task1Prompt = task1Html ? cleanWritingPromptText(task1Html) : ""
+  const task2Prompt = task2Html ? cleanWritingPromptText(task2Html) : ""
+
+  if (!task1Prompt && !task2Prompt) {
+    return undefined
+  }
+
+  const { url: task1ImageUrl, alt: task1ImageAlt } = task1Html ? extractWritingImage(task1Html, baseUrl) : {}
+
+  return {
+    task1Prompt: task1Prompt || undefined,
+    task2Prompt: task2Prompt || undefined,
+    task1MinWords: 150,
+    task2MinWords: 250,
+    task1ImageUrl,
+    task1ImageAlt,
+  }
+}
+
 export function parsePracticeTestPage(html: string, card: ScrapedCardMeta, skill: "listening" | "reading" | "writing"): PracticeTest {
   const answers = parseAnswerMap(html)
   const sections = parsePageSections(html, skill, answers)
   const sourceUrl = card.href.startsWith("http") ? card.href : `${IOT_BASE_URL}${card.href}`
+  const writingTasks = skill === "writing" ? parseWritingTasks(html, sourceUrl) : undefined
   return {
     id: `iot-${skill}-${card.quizId || encodeURIComponent(card.title.toLowerCase().replace(/\s+/g, "-"))}`,
     slug: generateTitleSlug(card.title, card.quizId),
@@ -472,6 +617,7 @@ export function parsePracticeTestPage(html: string, card: ScrapedCardMeta, skill
     upstreamQuizId: card.quizId,
     questionsUrl: card.questionsUrl,
     sections,
+    writingTasks,
   }
 }
 
@@ -485,11 +631,6 @@ export function cardToPracticeTest(card: ScrapedCardMeta, skill: "listening" | "
       instructions: `Authentic IELTS Practice mode for ${skill}. Standard official time applies.`,
       questions: [],
     }],
-    writingTasks: skill === "writing" ? {
-      task1Prompt: `Academic / General Training Task 1 for ${card.title}. (Summarise information, 150 words minimum).`,
-      task2Prompt: `Task 2 Essay for ${card.title}. (Present arguments and conclusions, 250 words minimum).`,
-      task1MinWords: 150,
-      task2MinWords: 250,
-    } : undefined,
+    writingTasks: undefined,
   }
 }

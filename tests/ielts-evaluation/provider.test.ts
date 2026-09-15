@@ -28,7 +28,7 @@ describe("createGroqProvider", () => {
   it("returns provider text through stable boundary", async () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }), { status: 200 }))
     const provider = createGroqProvider({ apiKey: "secret", fetcher })
-    await expect(provider.complete(request)).resolves.toEqual({ text: "ok", provider: "groq" })
+    await expect(provider.complete(request)).resolves.toEqual({ text: "ok", provider: "openai-compatible" })
   })
 
   it.each([
@@ -128,7 +128,7 @@ describe("completeStructured", () => {
 describe("requestGroq compatibility", () => {
   it("keeps Explain Bot string-returning signature", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: "compatible" } }] }), { status: 200 })))
-    vi.stubEnv("GROQ_API_KEY", "secret")
+    vi.stubEnv("AI_API_KEY", "secret")
     await expect(requestGroq([{ role: "user", content: "Explain" }], 100, 0.3)).resolves.toBe("compatible")
   })
 })

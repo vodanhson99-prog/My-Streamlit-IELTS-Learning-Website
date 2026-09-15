@@ -12,6 +12,7 @@ describe("POST /api/writing-feedback", () => {
     expect(res.status).toBe(400)
     const data = await res.json()
     expect(data.error).toContain("at least 20 characters")
+    expect(data.requestId).toBeDefined()
   })
 
   it("returns 400 when prompt is missing", async () => {
@@ -24,11 +25,31 @@ describe("POST /api/writing-feedback", () => {
     expect(res.status).toBe(400)
     const data = await res.json()
     expect(data.error).toContain("Task prompt is required")
+    expect(data.requestId).toBeDefined()
   })
 
-  it("returns 503 when GROQ_API_KEY is not configured and does not return heuristic band", async () => {
-    const original = process.env.GROQ_API_KEY
-    delete process.env.GROQ_API_KEY
+  it("returns 400 when combined mode has incomplete task essays", async () => {
+    const req = new Request("http://localhost/api/writing-feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        taskType: "both",
+        task1Prompt: "Task 1 Prompt",
+        task1Essay: "Too short",
+        task2Prompt: "Task 2 Prompt",
+        task2Essay: "This is a full Task 2 essay that is long enough to satisfy the character count requirements.",
+      }),
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(400)
+    const data = await res.json()
+    expect(data.error).toContain("Task 1 response must contain at least 20 characters")
+    expect(data.requestId).toBeDefined()
+  })
+
+  it("returns 503 when AI_API_KEY is not configured and does not return heuristic band", async () => {
+    const origAi = process.env.AI_API_KEY
+    delete process.env.AI_API_KEY
     try {
       const req = new Request("http://localhost/api/writing-feedback", {
         method: "POST",
@@ -41,11 +62,12 @@ describe("POST /api/writing-feedback", () => {
       const res = await POST(req)
       expect(res.status).toBe(503)
       const data = await res.json()
-      expect(data.error).toContain("missing GROQ_API_KEY")
+      expect(data.error).toContain("AI_API_KEY")
+      expect(data.requestId).toBeDefined()
       // Verify no heuristic band is returned
       expect(data.band_estimate).toBeUndefined()
     } finally {
-      process.env.GROQ_API_KEY = original
+      if (origAi !== undefined) process.env.AI_API_KEY = origAi
     }
   })
 })

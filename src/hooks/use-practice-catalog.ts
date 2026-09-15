@@ -6,7 +6,7 @@ import { FALLBACK_PRACTICE_TESTS } from "@/lib/fallback-catalog"
 import { getSelectedSlug } from "@/lib/practice-session"
 
 const CATALOG_STORAGE_KEY = "ielts_practice_catalog_cache_v2"
-const DETAIL_STORAGE_PREFIX = "ielts_test_detail_v1:"
+const DETAIL_STORAGE_PREFIX = "ielts_test_detail_v2:"
 
 function ensureTestSlugs(tests: PracticeTest[]): PracticeTest[] {
   return tests.map((test) => ({ ...test, slug: test.slug || generateTitleSlug(test.title, test.id) }))
@@ -103,16 +103,29 @@ export function usePracticeCatalog() {
   }, [])
 
   const loadTestDetail = async (test: PracticeTest): Promise<PracticeTest | null> => {
-    if (test.skill === "writing") return test
-    if (test.sections.some((section) => section.questions.length > 0)) return test
+    if (test.skill === "writing") {
+      // Complete writing detail requires task prompts. If task1 has image upstream, require task1ImageUrl.
+      const hasPrompts = Boolean(test.writingTasks?.task1Prompt && test.writingTasks?.task2Prompt)
+      if (hasPrompts) return test
 
-    const cached = readCachedDetail(test.skill, test.slug)
-    if (cached && cached.sections.some((section) => section.questions.length > 0)) {
-      setState((prev) => ({
-        ...prev,
-        tests: prev.tests.map((item) => (item.slug === cached.slug ? cached : item)),
-      }))
-      return cached
+      const cached = readCachedDetail(test.skill, test.slug)
+      if (cached?.writingTasks?.task1Prompt && cached.writingTasks?.task2Prompt) {
+        setState((prev) => ({
+          ...prev,
+          tests: prev.tests.map((item) => (item.slug === cached.slug ? cached : item)),
+        }))
+        return cached
+      }
+    } else {
+      if (test.sections.some((section) => section.questions.length > 0)) return test
+      const cached = readCachedDetail(test.skill, test.slug)
+      if (cached && cached.sections.some((section) => section.questions.length > 0)) {
+        setState((prev) => ({
+          ...prev,
+          tests: prev.tests.map((item) => (item.slug === cached.slug ? cached : item)),
+        }))
+        return cached
+      }
     }
 
     if (!test.upstreamQuizId) return test

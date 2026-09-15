@@ -117,6 +117,8 @@ export interface PracticeTest {
     task2Prompt?: string
     task1MinWords?: number
     task2MinWords?: number
+    task1ImageUrl?: string
+    task1ImageAlt?: string
   }
 }
 
@@ -128,9 +130,15 @@ export interface ListeningSessionData {
   answers: Record<string, string | string[]>
 }
 
+export type WritingPhase = "task1" | "task2" | "processing" | "completed"
+
 export interface WritingSessionData {
   activeTask: "task1" | "task2"
-  essay: string
+  phase?: WritingPhase
+  task1Essay?: string
+  task2Essay?: string
+  // Legacy single-essay compatibility fallback
+  essay?: string
 }
 
 export interface PracticeSession {
@@ -216,13 +224,28 @@ import type { LockedTask1Evaluation } from "@/lib/ielts-evaluation/task1/contrac
 import type { WritingCoaching } from "@/lib/ielts-evaluation/coaching/generate-coaching"
 
 export interface WritingDetailsPayload {
-  taskType?: "task1" | "task2"
+  taskType?: "task1" | "task2" | "both"
   testType?: "academic" | "general_training"
   essay?: string
   prompt?: string
   evaluation?: LockedTask2Evaluation | LockedTask1Evaluation
   resolvedAnnotations?: readonly ResolvedAnnotation[]
   coaching?: WritingCoaching
+  // Combined both-task details
+  task1?: {
+    prompt: string
+    essay: string
+    evaluation: LockedTask1Evaluation
+    resolvedAnnotations: readonly ResolvedAnnotation[]
+    coaching?: WritingCoaching
+  }
+  task2?: {
+    prompt: string
+    essay: string
+    evaluation: LockedTask2Evaluation
+    resolvedAnnotations: readonly ResolvedAnnotation[]
+    coaching?: WritingCoaching
+  }
 }
 
 export interface WritingProgressRecord extends CriterionBands {
@@ -247,13 +270,28 @@ export interface WritingFeedbackResult {
   criteria_sentences: [string, string][]
   overall_tip: string
   fallback_error?: string | null
-  taskType?: "task1" | "task2"
+  taskType?: "task1" | "task2" | "both"
   testType?: "academic" | "general_training"
   essay?: string
   prompt?: string
   evaluation?: LockedTask2Evaluation | LockedTask1Evaluation
   resolvedAnnotations?: readonly ResolvedAnnotation[]
   coaching?: WritingCoaching
+  task1?: {
+    prompt: string
+    essay: string
+    evaluation: LockedTask1Evaluation
+    resolvedAnnotations: readonly ResolvedAnnotation[]
+    coaching?: WritingCoaching
+  }
+  task2?: {
+    prompt: string
+    essay: string
+    evaluation: LockedTask2Evaluation
+    resolvedAnnotations: readonly ResolvedAnnotation[]
+    coaching?: WritingCoaching
+  }
+  requestId?: string
 }
 
 export interface HeuristicAnalysis {

@@ -29,10 +29,10 @@ export async function POST(request: Request) {
       )
     }
 
-    const apiKey = process.env.GROQ_API_KEY?.trim()
+    const apiKey = process.env.AI_API_KEY?.trim()
     if (!apiKey) {
       return NextResponse.json(
-        { error: "Tutor service requires GROQ_API_KEY to be configured." },
+        { error: "Tutor service requires AI_API_KEY to be configured." },
         { status: 503 },
       )
     }

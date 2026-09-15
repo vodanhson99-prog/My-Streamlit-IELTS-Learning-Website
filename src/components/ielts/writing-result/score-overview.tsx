@@ -2,19 +2,19 @@ import { Badge } from "@/components/ui/badge"
 import { Sparkles, ShieldCheck, AlertCircle } from "lucide-react"
 
 interface ScoreOverviewProps {
-  taskType?: "task1" | "task2"
+  taskType?: "task1" | "task2" | "both"
   overallBand: number
   stability?: "high" | "medium" | "low"
   summary?: string
 }
 
 export function ScoreOverview({
-  taskType = "task2",
+  taskType = "both",
   overallBand,
   stability = "high",
   summary,
 }: ScoreOverviewProps) {
-  const taskLabel = taskType === "task1" ? "Task 1" : "Task 2"
+  const taskLabel = taskType === "both" ? "Tasks 1 & 2 Combined" : taskType === "task1" ? "Task 1" : "Task 2"
 
   return (
     <div className="rounded-[3px] border border-border bg-card p-4 sm:p-5 flex flex-col gap-4">

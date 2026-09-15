@@ -1,13 +1,12 @@
 "use client"
 
-import { use } from "react"
+import { use, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { usePracticeCatalog } from "@/hooks/use-practice-catalog"
-import { useProgress } from "@/hooks/use-progress"
 import { WritingView } from "@/components/ielts/writing-view"
 import { SkillLoadingState } from "@/components/ielts/skill-loading-state"
 import { ClientHydration } from "@/components/ielts/client-hydration"
-import { saveTestResult } from "@/lib/practice-session"
+import type { PracticeTest } from "@/lib/ielts"
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -16,12 +15,30 @@ interface PageProps {
 export default function WritingSlugPage({ params }: PageProps) {
   const router = useRouter()
   const { slug } = use(params)
-  const { getTestBySkillAndSlug, isLoading } = usePracticeCatalog()
-  const { addWritingRecord } = useProgress()
+  const { getTestBySkillAndSlug, loadTestDetail, isLoading } = usePracticeCatalog()
 
-  const test = getTestBySkillAndSlug("writing", slug)
+  const catalogTest = getTestBySkillAndSlug("writing", slug)
+  const [test, setTest] = useState<PracticeTest | null>(null)
+  const [detailError, setDetailError] = useState<string | null>(null)
 
-  if (isLoading && !test) {
+  useEffect(() => {
+    if (!catalogTest) return
+    let cancelled = false
+    loadTestDetail(catalogTest)
+      .then((detailed) => {
+        if (!cancelled) setTest(detailed)
+      })
+      .catch((error: Error) => {
+        if (!cancelled) setDetailError(error.message)
+      })
+    return () => {
+      cancelled = true
+    }
+    // Intentionally keyed by id/slug to avoid remount loops when catalog object identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalogTest?.id, catalogTest?.slug])
+
+  if ((isLoading && !catalogTest) || (catalogTest && !test && !detailError)) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12">
         <SkillLoadingState
@@ -32,12 +49,12 @@ export default function WritingSlugPage({ params }: PageProps) {
     )
   }
 
-  if (!test) {
+  if (!catalogTest || !test) {
     return (
       <div className="max-w-md mx-auto py-16 text-center flex flex-col items-center gap-3">
         <h2 className="text-base font-semibold">Test not found</h2>
         <p className="text-xs text-muted-foreground">
-          This writing test is not in the current catalog.
+          {detailError || "This writing test is not in the current catalog."}
         </p>
         <button
           onClick={() => router.push("/writing")}
@@ -53,36 +70,7 @@ export default function WritingSlugPage({ params }: PageProps) {
     <>
       <main className="max-w-5xl mx-auto w-full px-4 sm:px-6 py-6">
         <ClientHydration>
-          <WritingView
-            test={test}
-            onComplete={(feedback) => {
-              addWritingRecord(feedback, test.id, test.title, test.slug)
-              saveTestResult({
-                skill: "writing",
-                slug: test.slug,
-                testId: test.id,
-                title: test.title,
-                completedAt: new Date().toISOString(),
-                band: feedback.band_estimate,
-                criterionBands: feedback.criterion_bands,
-                criteriaSentences: feedback.criteria_sentences,
-                overallTip: feedback.overall_tip,
-                source: feedback.source,
-                writingDetails: feedback.evaluation
-                  ? {
-                      taskType: feedback.taskType,
-                      testType: feedback.testType,
-                      essay: feedback.essay,
-                      prompt: feedback.prompt,
-                      evaluation: feedback.evaluation,
-                      resolvedAnnotations: feedback.resolvedAnnotations,
-                      coaching: feedback.coaching,
-                    }
-                  : undefined,
-              })
-              router.replace(`/writing/${test.slug}/result`)
-            }}
-          />
+          <WritingView test={test} />
         </ClientHydration>
       </main>
     </>

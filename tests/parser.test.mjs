@@ -107,3 +107,5 @@ test("cardToPracticeTest maps to unified practice test shape", () => {
   assert.equal(testObj.skill, "listening")
   assert.equal(testObj.durationMinutes, 32)
 })
+
+

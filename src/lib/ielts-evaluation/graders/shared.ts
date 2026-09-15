@@ -79,7 +79,7 @@ export function createCriterionGrader(
     const request: StructuredAiRequest<CriterionEvaluation> = {
       ...prompt,
       temperature: 0.1,
-      maxTokens: 1_800,
+      maxTokens: 1_200,
       schema: resultSchema,
       parse: (raw) => resultSchema.parse(raw) as CriterionEvaluation,
     }
