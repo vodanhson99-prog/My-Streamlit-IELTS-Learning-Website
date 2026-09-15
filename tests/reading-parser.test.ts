@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest"
 import { extractReadingPassage, parseScopedQuestions, parsePageSections } from "../src/lib/iot-parser"
-import type { QuestionAnswer } from "../src/lib/ielts"
 
 describe("Reading parser enhancements", () => {
   const sampleReadingHtml = `

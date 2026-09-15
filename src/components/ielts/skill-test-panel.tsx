@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useSyncExternalStore } from "react"
+import { useState, useSyncExternalStore } from "react"
 import { PracticeTest, SkillType } from "@/lib/ielts"
 import { getTestProgressStatus, type TestProgressStatus } from "@/lib/practice-session"
 import { Badge } from "@/components/ui/badge"
@@ -57,18 +57,18 @@ export function SkillTestPanel({
 
   // Reset page if tests change or current page overflows
   const totalPages = Math.max(1, Math.ceil(tests.length / ITEMS_PER_PAGE))
-  const safePage = Math.min(currentPage, totalPages)
+  
+  // Derived state: clamp current page to valid range
+  const safePage = Math.max(1, Math.min(currentPage, totalPages))
 
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(1)
-    }
-  }, [currentPage, totalPages])
-
-  // Reset to page 1 whenever switching skills
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [skill])
+  // We can track the previous skill to reset page during render (derived state)
+  const [prevSkill, setPrevSkill] = useState(skill)
+  if (skill !== prevSkill) {
+    setPrevSkill(skill)
+    setCurrentPage(1) // safe to call during render to reset state
+  } else if (currentPage !== safePage) {
+    setCurrentPage(safePage) // safe to call during render if out of bounds
+  }
 
   const startIndex = (safePage - 1) * ITEMS_PER_PAGE
   const currentTests = tests.slice(startIndex, startIndex + ITEMS_PER_PAGE)

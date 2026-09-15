@@ -110,6 +110,7 @@ export function usePracticeCatalog() {
     const cachedTimestamp = cached?.timestamp || null
 
     if (cachedTests.length > 0 && state.tests.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setState({
         tests: cachedTests,
         source: "client-cached",

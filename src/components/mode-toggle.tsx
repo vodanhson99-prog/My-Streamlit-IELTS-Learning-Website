@@ -4,13 +4,11 @@ import * as React from "react"
 import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 
+const emptySubscribe = () => () => {}
+
 export function ModeToggle() {
   const { setTheme, resolvedTheme } = useTheme()
-  const [mounted, setMounted] = React.useState(false)
-
-  React.useEffect(() => {
-    setMounted(true)
-  }, [])
+  const mounted = React.useSyncExternalStore(emptySubscribe, () => true, () => false)
 
   const toggleTheme = (e: React.MouseEvent<HTMLButtonElement>) => {
     const isDark = resolvedTheme === "dark"
