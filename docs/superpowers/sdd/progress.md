@@ -25,9 +25,11 @@ Human snapshot: `docs/ielts-writing-evaluation/PROGRESS.md`
 ## Status
 
 - All phases 1 through 11 complete, tested, built, linted, and verified.
+- Evaluation Lab MVP: dataset schema/loader (`8394031`) + metrics/runner (`e707feb`) complete.
 
 ## Notes
 
 - Worktree isolation skipped: Next.js app was untracked relative to old `main` at start; later dump commit `f7d9521` landed app/skills on the feature branch.
 - Never commit `credential/` cookies.
 - Interrupted mid-session 2026-09-14; docs + this ledger restored for resume.
+- 2026-09-16: local Evaluation Lab metrics/CLI landed; dashboard, silver importer, evidence-schema redesign deferred.
