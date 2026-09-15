@@ -8,7 +8,7 @@
     "start": "next start -p 5500",
     "lint": "eslint",
     "test": "node --test tests/**/*.test.mjs && vitest run",
-    "eval:writing": "vitest run tests/ielts-evaluation/eval-harness.test.ts",
+    "eval:writing": "tsx scripts/eval-writing.ts",
     "iot:login": "node scripts/iot-login.mjs"
   },
   "dependencies": {
@@ -36,6 +36,7 @@
     "eslint-config-next": "16.3.5",
     "playwright": "^1.63.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5",
     "vitest": "^5.0.0"
   },

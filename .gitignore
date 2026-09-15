@@ -26,3 +26,6 @@ next-env.d.ts
 # ide & os
 .DS_Store
 *.pem
+
+# local evaluation reports
+evals/writing/reports/

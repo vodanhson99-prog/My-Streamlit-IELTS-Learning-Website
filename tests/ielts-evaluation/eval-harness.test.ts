@@ -2,7 +2,15 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { describe, expect, it } from "vitest"
-import { computeMetrics, loadAllCases } from "../../scripts/eval-writing"
+import {
+  buildBenchmarkReport,
+  computeMetrics,
+  computeScoreMetrics,
+  formatBenchmarkReport,
+  loadAllCases,
+  quadraticWeightedKappa,
+  runOfflineBenchmark,
+} from "../../scripts/eval-writing"
 import { evalCaseSchema } from "../../evals/writing/schema"
 
 const baseCase = {
@@ -111,5 +119,81 @@ describe("Offline Evaluation Harness", () => {
     expect(metrics.withinHalfBandPct).toBe(66.7)
     expect(metrics.undergradedCount).toBe(1)
     expect(metrics.overgradedCount).toBe(0)
+  })
+
+  it("computes bias, confusion matrix, and quadratic weighted kappa", () => {
+    const metrics = computeScoreMetrics([
+      { predictedBand: 6.0, groundTruthBand: 6.0 },
+      { predictedBand: 7.0, groundTruthBand: 6.5 },
+      { predictedBand: 5.5, groundTruthBand: 6.0 },
+    ])
+
+    expect(metrics.meanBias).toBe(0)
+    expect(metrics.quadraticWeightedKappa).toBeGreaterThan(0)
+    expect(metrics.confusionMatrix["6"]["6"]).toBe(1)
+    expect(metrics.confusionMatrix["6.5"]["7"]).toBe(1)
+    expect(metrics.confusionMatrix["6"]["5.5"]).toBe(1)
+  })
+
+  it("returns perfect kappa for identical ordinal scores", () => {
+    expect(quadraticWeightedKappa([6, 6.5, 7], [6, 6.5, 7])).toBe(1)
+  })
+
+  it("excludes failed evaluations from score metrics and reports failure count", () => {
+    const report = buildBenchmarkReport([
+      {
+        caseId: "ok",
+        taskType: "task2",
+        testType: "academic",
+        predictedBand: 6.5,
+        groundTruthBand: 6.5,
+        status: "locked",
+        diff: 0,
+        predictedCriteria: { lexicalResource: 6 },
+        referenceCriteria: { lexicalResource: 6 },
+      },
+      {
+        caseId: "fail",
+        taskType: "task2",
+        testType: "academic",
+        predictedBand: null,
+        groundTruthBand: 7,
+        status: "failed",
+        diff: null,
+        error: "Criterion evaluation failed",
+      },
+    ])
+
+    expect(report.failedCount).toBe(1)
+    expect(report.scoredCount).toBe(1)
+    expect(report.overall.totalCases).toBe(1)
+    expect(report.overall.exactMatchPct).toBe(100)
+    expect(report.criteria.lexicalResource?.exactMatchPct).toBe(100)
+    expect(report.pipeline.invalidOutputRate).toBe(50)
+  })
+
+  it("formats a readable offline report", () => {
+    const text = formatBenchmarkReport(buildBenchmarkReport([
+      {
+        caseId: "ok",
+        taskType: "task2",
+        testType: "academic",
+        predictedBand: 6.5,
+        groundTruthBand: 6.5,
+        status: "locked",
+        diff: 0,
+      },
+    ]))
+
+    expect(text).toContain("Overall MAE")
+    expect(text).toContain("Quadratic Weighted Kappa")
+    expect(text).toContain("Failed evaluations")
+  })
+
+  it("runs offline benchmark validation without live provider calls", () => {
+    const offline = runOfflineBenchmark()
+    expect(offline.caseCount).toBeGreaterThanOrEqual(8)
+    expect(offline.mode).toBe("offline")
+    expect(offline.reportText).toContain("Schema validation successful")
   })
 })

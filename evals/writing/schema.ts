@@ -52,3 +52,26 @@ export interface EvalMetrics {
   exactMatchPct: number
   criterionErrors?: Record<string, number>
 }
+
+export interface ScoreMetrics extends EvalMetrics {
+  meanBias: number
+  quadraticWeightedKappa: number
+  confusionMatrix: Record<string, Record<string, number>>
+}
+
+export interface PipelineMetrics {
+  failedCount: number
+  scoredCount: number
+  invalidOutputRate: number
+  annotationResolutionRate: number | null
+  challengerTriggerRate: number | null
+  challengerOverturnRate: number | null
+}
+
+export interface BenchmarkReport {
+  scoredCount: number
+  failedCount: number
+  overall: ScoreMetrics
+  criteria: Record<string, ScoreMetrics>
+  pipeline: PipelineMetrics
+}
