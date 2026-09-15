@@ -3,6 +3,10 @@
     "id": "t1-acad-chart-band5",
     "taskType": "task1",
     "testType": "academic",
+    "dataset": {
+      "category": "regression",
+      "source": "curated-local-smoke-corpus"
+    },
     "promptFamily": "chart",
     "controlTag": "smoke-band-5.0",
     "prompt": "The bar chart shows the percentage of households in different income brackets owning electric vehicles between 2015 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
@@ -19,6 +23,10 @@
     "id": "t1-acad-chart-band6-5",
     "taskType": "task1",
     "testType": "academic",
+    "dataset": {
+      "category": "regression",
+      "source": "curated-local-smoke-corpus"
+    },
     "promptFamily": "chart",
     "controlTag": "smoke-band-6.5",
     "prompt": "The bar chart shows the percentage of households in different income brackets owning electric vehicles between 2015 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
@@ -35,6 +43,10 @@
     "id": "t1-acad-chart-band8",
     "taskType": "task1",
     "testType": "academic",
+    "dataset": {
+      "category": "regression",
+      "source": "curated-local-smoke-corpus"
+    },
     "promptFamily": "chart",
     "controlTag": "smoke-band-8.0",
     "prompt": "The bar chart shows the percentage of households in different income brackets owning electric vehicles between 2015 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
@@ -51,6 +63,10 @@
     "id": "t1-gt-letter-band5",
     "taskType": "task1",
     "testType": "general_training",
+    "dataset": {
+      "category": "regression",
+      "source": "curated-local-smoke-corpus"
+    },
     "promptFamily": "letter",
     "controlTag": "smoke-band-5.0",
     "prompt": "You recently stayed at a hotel and left an important item in the room. Write a letter to the hotel manager. In your letter: explain what you left behind, describe where you think it is, and explain what you want the manager to do.",
@@ -67,6 +83,10 @@
     "id": "t1-gt-letter-band7",
     "taskType": "task1",
     "testType": "general_training",
+    "dataset": {
+      "category": "regression",
+      "source": "curated-local-smoke-corpus"
+    },
     "promptFamily": "letter",
     "controlTag": "smoke-band-7.0",
     "prompt": "You recently stayed at a hotel and left an important item in the room. Write a letter to the hotel manager. In your letter: explain what you left behind, describe where you think it is, and explain what you want the manager to do.",
@@ -83,6 +103,10 @@
     "id": "t2-acad-opinion-band5-5",
     "taskType": "task2",
     "testType": "academic",
+    "dataset": {
+      "category": "regression",
+      "source": "curated-local-smoke-corpus"
+    },
     "promptFamily": "opinion",
     "controlTag": "smoke-boundary-5.5",
     "prompt": "Some people believe that unpaid community service should be a compulsory part of high school programmes. To what extent do you agree or disagree?",
@@ -99,6 +123,10 @@
     "id": "t2-acad-opinion-band6-0",
     "taskType": "task2",
     "testType": "academic",
+    "dataset": {
+      "category": "regression",
+      "source": "curated-local-smoke-corpus"
+    },
     "promptFamily": "opinion",
     "controlTag": "smoke-boundary-6.0",
     "prompt": "Some people believe that unpaid community service should be a compulsory part of high school programmes. To what extent do you agree or disagree?",
@@ -115,6 +143,10 @@
     "id": "t2-acad-opinion-band7-5",
     "taskType": "task2",
     "testType": "academic",
+    "dataset": {
+      "category": "regression",
+      "source": "curated-local-smoke-corpus"
+    },
     "promptFamily": "opinion",
     "controlTag": "smoke-band-7.5",
     "prompt": "Some people believe that unpaid community service should be a compulsory part of high school programmes. To what extent do you agree or disagree?",

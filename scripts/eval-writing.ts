@@ -1,6 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
-import { evalCaseSchema, type EvalCase, type EvalMetrics } from "../evals/writing/schema"
+import { datasetCategories, evalCaseSchema, type DatasetCategory, type EvalCase, type EvalMetrics } from "../evals/writing/schema"
 import { evaluateTask1 } from "../src/lib/ielts-evaluation/evaluate-task1"
 import { evaluateTask2 } from "../src/lib/ielts-evaluation/evaluate-task2"
 import { createAIProvider } from "../src/lib/ai/provider"
@@ -55,17 +55,55 @@ export function computeMetrics(
   }
 }
 
-export function loadAllCases(casesDir: string = path.resolve(process.cwd(), "evals/writing/cases")): EvalCase[] {
-  if (!fs.existsSync(casesDir)) return []
-  const files = fs.readdirSync(casesDir).filter((f) => f.endsWith(".json"))
-  const allCases: EvalCase[] = []
+export interface LoadCasesOptions {
+  categories?: readonly DatasetCategory[] | readonly string[]
+}
 
-  for (const f of files) {
-    const raw = fs.readFileSync(path.join(casesDir, f), "utf-8")
-    const parsed = JSON.parse(raw)
-    if (Array.isArray(parsed)) {
-      for (const item of parsed) {
-        allCases.push(evalCaseSchema.parse(item))
+function isDatasetCategory(value: string): value is DatasetCategory {
+  return (datasetCategories as readonly string[]).includes(value)
+}
+
+export function loadAllCases(
+  casesDir: string = path.resolve(process.cwd(), "evals/writing/cases"),
+  options: LoadCasesOptions = {},
+): EvalCase[] {
+  if (!fs.existsSync(casesDir)) return []
+  const requestedCategories = options.categories ?? []
+  for (const category of requestedCategories) {
+    if (!isDatasetCategory(category)) {
+      throw new Error(`Unknown dataset category '${category}'. Expected one of: ${datasetCategories.join(", ")}.`)
+    }
+  }
+
+  const files = fs.readdirSync(casesDir).filter((f) => f.endsWith(".json")).sort()
+  const allCases: EvalCase[] = []
+  const seenIds = new Set<string>()
+
+  for (const file of files) {
+    const filePath = path.join(casesDir, file)
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(fs.readFileSync(filePath, "utf-8"))
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "invalid JSON"
+      throw new Error(`Failed to parse ${file}: invalid JSON (${reason})`)
+    }
+    if (!Array.isArray(parsed)) {
+      throw new Error(`Invalid fixture ${file}: expected a JSON array of evaluation cases.`)
+    }
+
+    for (const [index, item] of parsed.entries()) {
+      const result = evalCaseSchema.safeParse(item)
+      if (!result.success) {
+        throw new Error(`Invalid case in ${file} at index ${index}: ${result.error.message}`)
+      }
+      const evalCase = result.data
+      if (seenIds.has(evalCase.id)) {
+        throw new Error(`Duplicate case ID '${evalCase.id}' found in ${file}. Case IDs must be unique.`)
+      }
+      seenIds.add(evalCase.id)
+      if (requestedCategories.length === 0 || (evalCase.dataset && requestedCategories.includes(evalCase.dataset.category))) {
+        allCases.push(evalCase)
       }
     }
   }

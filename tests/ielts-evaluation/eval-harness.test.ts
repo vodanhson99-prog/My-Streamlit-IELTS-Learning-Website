@@ -1,18 +1,101 @@
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
 import { describe, expect, it } from "vitest"
-import { computeMetrics } from "../../scripts/eval-writing"
+import { computeMetrics, loadAllCases } from "../../scripts/eval-writing"
 import { evalCaseSchema } from "../../evals/writing/schema"
 
-describe("Offline Evaluation Harness", () => {
-  it("validates eval case schema", () => {
-    const validCase = {
-      id: "case-1",
-      taskType: "task2",
-      testType: "academic",
-      prompt: "Discuss views",
-      essay: "Sample essay content...",
-      groundTruth: { overallBand: 6.5 },
+const baseCase = {
+  id: "case-1",
+  taskType: "task2" as const,
+  testType: "academic" as const,
+  prompt: "Discuss views",
+  essay: "Sample essay content...",
+  groundTruth: { overallBand: 6.5 },
+}
+
+function withFixture(files: Record<string, unknown>, callback: (directory: string) => void) {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "ielts-eval-"))
+  try {
+    for (const [name, contents] of Object.entries(files)) {
+      fs.writeFileSync(path.join(directory, name), typeof contents === "string" ? contents : JSON.stringify(contents))
     }
-    expect(evalCaseSchema.parse(validCase)).toBeDefined()
+    callback(directory)
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true })
+  }
+}
+
+
+describe("Offline Evaluation Harness", () => {
+  it("parses dataset metadata, raters, adjudication, notes, tags, and reference scores", () => {
+    const parsed = evalCaseSchema.parse({
+      ...baseCase,
+      dataset: {
+        category: "gold-human",
+        source: "curated-local",
+        version: "2026-09-16",
+      },
+      raters: [{ id: "rater-1", score: { overallBand: 6.5 } }],
+      adjudicated: true,
+      notes: "Reviewed for calibration.",
+      tags: ["boundary", "task2"],
+      promptFamily: "opinion",
+      groundTruth: {
+        overallBand: 6.5,
+        referenceCriterionScores: { lexicalResource: 6.0 },
+      },
+    })
+
+    expect(parsed.dataset).toBeDefined()
+    expect(parsed.dataset?.category).toBe("gold-human")
+    expect(parsed.raters?.[0].score.overallBand).toBe(6.5)
+    expect(parsed.adjudicated).toBe(true)
+    expect(parsed.groundTruth.referenceCriterionScores?.lexicalResource).toBe(6)
+  })
+
+  it("keeps legacy fixtures with only overallBand valid", () => {
+    expect(evalCaseSchema.parse(baseCase).groundTruth).toEqual({ overallBand: 6.5 })
+  })
+
+  it("rejects unknown dataset categories", () => {
+    expect(() => evalCaseSchema.parse({
+      ...baseCase,
+      dataset: { category: "unknown", source: "curated-local" },
+    })).toThrow()
+  })
+
+  it("rejects duplicate IDs across fixture files", () => {
+    withFixture({
+      "first.json": [baseCase],
+      "second.json": [{ ...baseCase, id: "case-1" }],
+    }, (directory) => {
+      expect(() => loadAllCases(directory)).toThrow(/duplicate case ID.*case-1/i)
+    })
+  })
+
+  it("filters cases by dataset category", () => {
+    withFixture({
+      "cases.json": [
+        { ...baseCase, id: "gold", dataset: { category: "gold-human", source: "curated-local" } },
+        { ...baseCase, id: "regression", dataset: { category: "regression", source: "curated-local" } },
+      ],
+    }, (directory) => {
+      expect(loadAllCases(directory, { categories: ["regression"] }).map((item) => item.id)).toEqual(["regression"])
+      expect(() => loadAllCases(directory, { categories: ["unknown" as never] })).toThrow(/unknown dataset categor/i)
+    })
+  })
+
+  it("reports malformed fixture JSON with its filename", () => {
+    withFixture({ "broken.json": "{" }, (directory) => {
+      expect(() => loadAllCases(directory)).toThrow(/broken\.json.*JSON/i)
+    })
+  })
+
+  it("reports malformed fixture schema with file and case index", () => {
+    withFixture({ "bad-schema.json": [{ ...baseCase, prompt: 42 }] }, (directory) => {
+      expect(() => loadAllCases(directory)).toThrow(/bad-schema\.json.*index 0/i)
+    })
   })
 
   it("calculates accuracy and error metrics accurately", () => {
