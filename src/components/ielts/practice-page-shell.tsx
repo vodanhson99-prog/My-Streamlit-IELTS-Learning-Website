@@ -11,7 +11,7 @@ interface PracticePageShellProps {
  */
 export function PracticePageShell({ children, className }: PracticePageShellProps) {
   return (
-    <main className={cn("mx-auto w-full max-w-6xl px-4 sm:px-6 py-6 pb-12", className)}>
+    <main className={cn("mx-auto w-full max-w-6xl px-4 sm:px-6 py-6 pb-24 md:pb-12", className)}>
       {children}
     </main>
   )

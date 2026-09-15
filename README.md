@@ -1,4 +1,4 @@
-# IELTS Prep — Modern Next.js Dashboard
+# ielts with rbs — Modern Next.js Dashboard
 
 Modern IELTS preparation platform built with **Next.js (App Router)**, **TypeScript**, **Tailwind CSS v4**, and **shadcn/ui**.
 

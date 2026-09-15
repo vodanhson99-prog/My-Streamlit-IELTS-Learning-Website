@@ -1,5 +1,6 @@
 "use client"
 
+import { Volume2 } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { UniversalQuestion, hasAnswer, optionIsCorrect, selectedOptionsMatch } from "@/lib/ielts"
@@ -10,9 +11,10 @@ interface ChoiceQuestionProps {
   onChange: (value: number | number[]) => void
   disabled?: boolean
   isSubmitted?: boolean
+  onListen?: () => void
 }
 
-export function ChoiceQuestion({ question, value, onChange, disabled, isSubmitted }: ChoiceQuestionProps) {
+export function ChoiceQuestion({ question, value, onChange, disabled, isSubmitted, onListen }: ChoiceQuestionProps) {
   const options = question.options || []
   const multiple = question.type === "multiple_choice"
   const selected = Array.isArray(value) ? value : typeof value === "number" ? [value] : []
@@ -25,10 +27,25 @@ export function ChoiceQuestion({ question, value, onChange, disabled, isSubmitte
 
   return (
     <div id={`question-wrapper-${question.id}`} className="flex flex-col gap-2 py-3 first:pt-0">
-      <p className="flex items-start gap-1.5 text-xs font-medium leading-snug text-foreground">
+      <div className="flex items-start gap-1.5 text-xs font-medium leading-snug text-foreground">
         <span className="shrink-0 font-mono text-[11px] text-muted-foreground">Q{question.number}.</span>
+        {onListen && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              onListen()
+            }}
+            title="Listen from here"
+            aria-label={`Listen to Question ${question.number}`}
+            className="inline-flex items-center justify-center size-5 shrink-0 rounded-[2px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <Volume2 className="size-3" />
+          </button>
+        )}
         <span>{question.prompt}</span>
-      </p>
+      </div>
       {multiple && <p className="text-[10px] font-mono text-muted-foreground">Choose {question.group?.maxAnswers || "all that apply"}.</p>}
       {multiple ? (
         <div className="grid gap-1.5">

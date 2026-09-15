@@ -319,14 +319,30 @@ export function WritingView({ test }: WritingViewProps) {
             <h2 className="text-sm font-semibold text-foreground">
               {activeTask === "task1" ? "Task 1 Response" : "Task 2 Response"}
             </h2>
-            <div className="flex items-center gap-2 text-xs font-mono">
-              <span className={`font-semibold ${isTargetMet ? "text-emerald-600" : "text-foreground"}`}>
-                {currentWords} words
+            <div className="flex items-center gap-2">
+              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground mr-1">
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Auto-saved
               </span>
-              <span className="text-muted-foreground text-[10px]">
-                {wordsRemaining > 0 ? `(${wordsRemaining} more to target)` : "(Target met)"}
-              </span>
+              <div className="flex items-center gap-2 text-xs font-mono">
+                <span className={`font-semibold ${isTargetMet ? "text-emerald-600" : "text-foreground"}`}>
+                  {currentWords} / {minWords} words
+                </span>
+                <span className="text-muted-foreground text-[10px]">
+                  {wordsRemaining > 0 ? `(-${wordsRemaining})` : "(Target met)"}
+                </span>
+              </div>
             </div>
+          </div>
+
+          {/* Visual Word Target Progress Bar */}
+          <div className="w-full bg-muted rounded-full h-1 overflow-hidden" aria-hidden="true">
+            <div
+              className={`h-full transition-all duration-300 ${
+                isTargetMet ? "bg-emerald-600" : "bg-foreground/70"
+              }`}
+              style={{ width: `${Math.min(100, Math.round((currentWords / minWords) * 100))}%` }}
+            />
           </div>
 
           <Textarea

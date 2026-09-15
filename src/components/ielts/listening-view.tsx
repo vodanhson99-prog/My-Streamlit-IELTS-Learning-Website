@@ -63,6 +63,15 @@ export function ListeningView({
 
   const currentSection = sections[activePartIndex] || sections[0]
   const currentQuestions = currentSection?.questions || []
+  const gridQuestionIds = new Set(
+    currentSection?.grid?.rows.flatMap((row) => row.questionIds.filter((id): id is string => Boolean(id))) ?? [],
+  )
+  const standaloneQuestions = currentQuestions.filter((question) => !gridQuestionIds.has(question.id))
+
+  const partNumber = activePartIndex + 1
+  const partLabel = `Part ${partNumber}`
+  const rawTitle = currentSection?.title?.trim() || ""
+  const cleanedTitle = rawTitle.replace(new RegExp(`^${partLabel}\\s*[:\\-–—]?\\s*`, "i"), "").trim()
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -128,6 +137,13 @@ export function ListeningView({
     }
   }
 
+  const handleSeekRelative = (deltaSeconds: number) => {
+    const audio = audioRef.current
+    if (audio) {
+      audio.currentTime = Math.max(0, Math.min(audio.duration || Infinity, audio.currentTime + deltaSeconds))
+    }
+  }
+
   const handleQuestionJump = (questionId: string, sectionIndex: number) => {
     setActivePartIndex(sectionIndex)
     setTimeout(() => {
@@ -168,20 +184,40 @@ export function ListeningView({
         <div className="flex items-center gap-2 min-w-0">
           <Volume2 className="size-4 text-muted-foreground shrink-0" />
           <span className="text-xs font-medium truncate">
-            Part {activePartIndex + 1}: {currentSection?.title || "Audio Track"}
+            {partLabel}{cleanedTitle ? `: ${cleanedTitle}` : ""}
           </span>
         </div>
 
         {currentSection?.audioUrl ? (
-          <audio
-            ref={audioRef}
-            key={currentSection.audioUrl}
-            controls
-            className="w-full sm:w-72 h-8 outline-none"
-            src={currentSection.audioUrl}
-          >
-            Your browser does not support audio playback.
-          </audio>
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => handleSeekRelative(-5)}
+              className="h-8 px-2 rounded-[2px] border border-border bg-background text-[11px] font-mono text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+              title="Replay 5 seconds"
+              aria-label="Replay 5 seconds"
+            >
+              -5s
+            </button>
+            <audio
+              ref={audioRef}
+              key={currentSection.audioUrl}
+              controls
+              className="w-full sm:w-64 h-8 outline-none"
+              src={currentSection.audioUrl}
+            >
+              Your browser does not support audio playback.
+            </audio>
+            <button
+              type="button"
+              onClick={() => handleSeekRelative(5)}
+              className="h-8 px-2 rounded-[2px] border border-border bg-background text-[11px] font-mono text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+              title="Forward 5 seconds"
+              aria-label="Forward 5 seconds"
+            >
+              +5s
+            </button>
+          </div>
         ) : (
           <span className="text-[11px] font-mono text-muted-foreground italic">
             Audio stream available in full mock session
@@ -196,9 +232,9 @@ export function ListeningView({
           <div className="flex items-center justify-between border-b border-border pb-3">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
               <span className="px-1.5 py-0.5 rounded-[2px] bg-foreground text-background text-[11px] font-mono font-bold">
-                Part {activePartIndex + 1}
+                {partLabel}
               </span>
-              <span>{currentSection?.title}</span>
+              {cleanedTitle ? <span>{cleanedTitle}</span> : null}
             </h2>
 
             <span className="font-mono text-[11px] text-muted-foreground">
@@ -207,14 +243,21 @@ export function ListeningView({
           </div>
 
           {currentSection?.instructions && (
-            <p className="text-xs font-mono text-muted-foreground border-l-2 border-foreground/30 pl-2.5 py-0.5">
+            <div className="rounded-[3px] bg-muted/30 border border-border/80 px-3 py-2 text-xs font-medium text-muted-foreground leading-relaxed">
               {currentSection.instructions}
-            </p>
+            </div>
           )}
 
-          {currentSection?.audioTimestamp !== undefined && (
-            <Button type="button" variant="outline" size="sm" onClick={() => handleSeek(currentSection.audioTimestamp!)} className="self-start font-mono">
-              Listen from here ({Math.floor(currentSection.audioTimestamp! / 60)}:{String(currentSection.audioTimestamp! % 60).padStart(2, "0")})
+          {currentSection?.audioUrl && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleSeek(currentSection.audioTimestamp ?? 0)}
+              className="self-start text-xs font-medium rounded-[2px] h-7 px-2.5 gap-1.5 border-border hover:bg-muted font-mono"
+            >
+              <Volume2 className="size-3.5 text-muted-foreground" />
+              Listen from here
             </Button>
           )}
 
@@ -228,29 +271,128 @@ export function ListeningView({
             <div className="overflow-x-auto rounded-[2px] border border-border">
               <table className="w-full border-collapse text-xs">
                 <thead className="bg-muted/40"><tr>{currentSection.grid.headers.map((header) => <th key={header} className="border-b border-border px-3 py-2 text-left font-mono">{header}</th>)}</tr></thead>
-                <tbody>{currentSection.grid.rows.map((row, rowIndex) => <tr key={rowIndex}>{row.cells.map((cell, cellIndex) => <td key={`${rowIndex}-${cellIndex}`} className="border-b border-border/60 px-3 py-2">{cell}</td>)}</tr>)}</tbody>
+                <tbody>
+                  {currentSection.grid.rows.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {row.cells.map((cell, cellIndex) => {
+                        const questionId = row.questionIds[cellIndex]
+                        const question = questionId ? currentQuestions.find((item) => item.id === questionId) : undefined
+                        const value = question ? userAnswers[question.id] || "" : ""
+                        const correct = Boolean(question && isSubmitted && answersMatch(value, question.answer))
+                        const wrong = Boolean(question && isSubmitted && hasAnswer(value) && !correct)
+
+                        return (
+                          <td key={`${rowIndex}-${cellIndex}`} className={`border-b border-border/60 px-3 py-2 ${correct ? "bg-emerald-500/10" : wrong ? "bg-destructive/10" : ""}`}>
+                            {question ? (
+                              <label className="flex items-center gap-1.5 min-w-24">
+                                <span className="font-mono text-[10px] text-muted-foreground">Q{question.number}</span>
+                                <input
+                                  aria-label={`Answer for Question ${question.number}`}
+                                  value={Array.isArray(value) ? value.join(", ") : value}
+                                  onChange={(event) => handleAnswerChange(question.id, event.target.value)}
+                                  disabled={isSubmitted}
+                                  className="min-w-0 w-full border-b border-border bg-transparent px-1 py-0.5 text-xs outline-none focus:border-foreground disabled:opacity-60"
+                                />
+                              </label>
+                            ) : cell}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             </div>
           )}
 
           {/* Question List */}
           <div className="flex flex-col divide-y divide-border/60 pt-1">
-            {currentQuestions.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic py-6 text-center">
-                No questions available for Part {activePartIndex + 1}.
-              </p>
+            {standaloneQuestions.length === 0 ? (
+              currentSection?.grid ? null : (
+                <p className="text-xs text-muted-foreground italic py-6 text-center">
+                  No questions available for {partLabel}.
+                </p>
+              )
             ) : (
-              currentQuestions.map((q) => {
+              standaloneQuestions.map((q, qIndex) => {
                 const val = userAnswers[q.id] || ""
                 const isCorrect = isSubmitted && answersMatch(val, q.answer)
                 const isWrong = isSubmitted && hasAnswer(val) && !isCorrect
 
-                if (q.options?.length) {
-                  const choiceValue = Array.isArray(val) ? val.map(Number) : val === "" ? undefined : Number(val)
-                  return <ChoiceQuestion key={q.id} question={q} value={choiceValue} onChange={(newVal) => handleAnswerChange(q.id, newVal)} disabled={isSubmitted} isSubmitted={isSubmitted} />
-                }
+                const prevQ = qIndex > 0 ? standaloneQuestions[qIndex - 1] : null
+                const isFirstOfGroup = Boolean(
+                  (q.group?.title && q.group.title !== prevQ?.group?.title) ||
+                  (q.group?.instructions && q.group.instructions !== prevQ?.group?.instructions) ||
+                  (q.group?.answerRange && q.number === q.group.answerRange[0]) ||
+                  (qIndex > 0 && q.audioTimestamp !== undefined && q.audioTimestamp !== prevQ?.audioTimestamp)
+                )
 
-                return <InlineQuestionPrompt key={q.id} question={q} value={val} onChange={(newVal) => handleAnswerChange(q.id, newVal)} disabled={isSubmitted} isSubmitted={isSubmitted} isCorrect={isCorrect} isWrong={isWrong} />
+                const qTimestamp =
+                  q.audioTimestamp ?? q.group?.audioTimestamp ?? currentSection?.audioTimestamp ?? 0
+
+                return (
+                  <div key={q.id} className="flex flex-col">
+                    {isFirstOfGroup && (
+                      <div className="pt-4 pb-1.5 flex flex-col gap-1 border-t border-border/40 mt-2 first:mt-0 first:border-t-0">
+                        <div className="flex items-center justify-between gap-2">
+                          {q.group?.title ? (
+                            <h3 className="text-xs font-semibold text-foreground tracking-tight px-1 uppercase">
+                              {q.group.title}
+                            </h3>
+                          ) : q.group?.answerRange ? (
+                            <span className="text-[11px] font-mono font-semibold text-muted-foreground px-1 uppercase">
+                              Questions {q.group.answerRange[0]}–{q.group.answerRange[1]}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-mono font-semibold text-muted-foreground px-1">
+                              Question {q.number}
+                            </span>
+                          )}
+
+                          {currentSection?.audioUrl && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleSeek(qTimestamp)}
+                              className="h-6 px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted gap-1 rounded-[2px]"
+                            >
+                              <Volume2 className="size-3" />
+                              Listen from here
+                            </Button>
+                          )}
+                        </div>
+
+                        {q.group?.instructions && (
+                          <p className="mt-1 text-xs text-muted-foreground border-l-2 border-foreground/30 pl-2.5 py-0.5 italic">
+                            {q.group.instructions}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {q.options?.length ? (
+                      <ChoiceQuestion
+                        question={q}
+                        value={Array.isArray(val) ? val.map(Number) : val === "" ? undefined : Number(val)}
+                        onChange={(newVal) => handleAnswerChange(q.id, newVal)}
+                        disabled={isSubmitted}
+                        isSubmitted={isSubmitted}
+                        onListen={currentSection?.audioUrl ? () => handleSeek(qTimestamp) : undefined}
+                      />
+                    ) : (
+                      <InlineQuestionPrompt
+                        question={q}
+                        value={val}
+                        onChange={(newVal) => handleAnswerChange(q.id, newVal)}
+                        disabled={isSubmitted}
+                        isSubmitted={isSubmitted}
+                        isCorrect={isCorrect}
+                        isWrong={isWrong}
+                        onListen={currentSection?.audioUrl ? () => handleSeek(qTimestamp) : undefined}
+                      />
+                    )}
+                  </div>
+                )
               })
             )}
           </div>

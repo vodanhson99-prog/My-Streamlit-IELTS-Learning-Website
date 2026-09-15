@@ -16,7 +16,7 @@ Người học IELTS tự ôn, luyện từng kỹ năng tại nhà.
 
 ## Product Purpose
 
-IELTS Prep cung cấp workspace luyện Reading và Writing, chấm điểm tức thời, phản hồi theo tiêu chí IELTS và gợi ý bước học tiếp theo. Thành công là người học luyện đều đặn và biết rõ cần cải thiện gì sau mỗi phiên.
+IELTS with RBS cung cấp workspace luyện Reading và Writing, chấm điểm tức thời, phản hồi theo tiêu chí IELTS và gợi ý bước học tiếp theo. Thành công là người học luyện đều đặn và biết rõ cần cải thiện gì sau mỗi phiên.
 
 ## Positioning
 
@@ -37,7 +37,7 @@ Người học mở app trên trình duyệt, chọn một kỹ năng, hoàn th�
 
 ## Brand Commitments
 
-Tên sản phẩm là IELTS Prep. Giao diện cần rõ ràng, tập trung vào nhiệm vụ học và không gây nhiễu.
+Tên sản phẩm là ielts with rbs. Giao diện cần rõ ràng, tập trung vào nhiệm vụ học và không gây nhiễu.
 
 ## Evidence on Hand
 

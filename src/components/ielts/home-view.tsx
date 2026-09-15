@@ -1,19 +1,23 @@
 "use client"
 
 import * as React from "react"
+import { useSyncExternalStore } from "react"
 import {
   ArrowRight,
   BookOpen,
   Calendar,
-  GraduationCap,
-  MessageSquare,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Loader2,
   PenTool,
-  TrendingUp,
+  Play,
   Volume2,
 } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import {
   ChartContainer,
   ChartTooltip,
@@ -22,14 +26,22 @@ import {
 } from "@/components/ui/chart"
 import {
   type AppProgress,
+  type PracticeTest,
+  type SkillType,
   averageReadingScore,
   averageWritingBand,
   averageListeningBand,
 } from "@/lib/ielts"
+import { getTestProgressStatus } from "@/lib/practice-session"
 
 interface HomeViewProps {
   progress: AppProgress
   onNavigate: (tab: "home" | "coach" | "listening" | "reading" | "writing" | "explain" | "progress") => void
+  onStartTest: (skill: SkillType, slug: string) => void
+  onLoadTest?: (test: PracticeTest) => Promise<PracticeTest | null>
+  listeningTests?: PracticeTest[]
+  readingTests?: PracticeTest[]
+  writingTests?: PracticeTest[]
 }
 
 interface DailyActivityPoint {
@@ -60,6 +72,8 @@ const activityChartConfig = {
     color: "var(--chart-4)",
   },
 } satisfies ChartConfig
+
+const emptySubscribe = () => () => {}
 
 function formatLocalIsoDay(d: Date): string {
   const year = d.getFullYear()
@@ -116,7 +130,166 @@ function buildLast7DaysActivity(progress: AppProgress): DailyActivityPoint[] {
   return points
 }
 
-export function HomeView({ progress, onNavigate }: HomeViewProps) {
+interface SkillColumnProps {
+  title: string
+  skill: SkillType
+  icon: React.ComponentType<{ className?: string }>
+  tests: PracticeTest[]
+  isHydrated: boolean
+  loadingSlug: string | null
+  onStart: (skill: SkillType, test: PracticeTest) => void
+  onNavigate: (tab: "home" | "coach" | "listening" | "reading" | "writing" | "explain" | "progress") => void
+}
+
+const INITIAL_HOME_TESTS = 10
+
+function SkillColumn({
+  title,
+  skill,
+  icon: Icon,
+  tests,
+  isHydrated,
+  loadingSlug,
+  onStart,
+  onNavigate,
+}: SkillColumnProps) {
+  const [visibleCount, setVisibleCount] = React.useState(INITIAL_HOME_TESTS)
+
+  // ponytail: filter out tests that are doing or done so only fresh exercises appear
+  const newTests = React.useMemo(() => {
+    if (!isHydrated) return tests
+    return tests.filter((t) => getTestProgressStatus(skill, t.slug) === "idle")
+  }, [tests, skill, isHydrated])
+
+  const visibleTests = React.useMemo(() => {
+    return newTests.slice(0, visibleCount)
+  }, [newTests, visibleCount])
+
+  const hasMore = visibleCount < newTests.length
+  const remainingCount = newTests.length - visibleCount
+
+  return (
+    <div className="flex flex-col gap-3 rounded-[3px] border border-border bg-card/60 p-4">
+      <div className="flex items-center justify-between border-b border-border pb-3">
+        <div className="flex items-center gap-2">
+          <Icon className="size-4 text-foreground" />
+          <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
+          <Badge variant="secondary" className="font-mono text-[10px] px-1.5 py-0 h-4.5 rounded-[2px]">
+            {newTests.length}
+          </Badge>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onNavigate(skill)}
+          className="h-7 px-2 font-mono text-[10px] uppercase text-muted-foreground hover:text-foreground"
+        >
+          All tests <ArrowRight className="ml-1 size-3" />
+        </Button>
+      </div>
+
+      <div className="flex flex-col gap-2.5">
+        {newTests.length === 0 ? (
+          <div className="rounded-[2px] border border-dashed border-border/80 p-6 text-center text-xs text-muted-foreground">
+            No new exercises available.
+          </div>
+        ) : (
+          <>
+            {visibleTests.map((test) => {
+              const isLoadingThis = loadingSlug === test.slug
+              const duration = test.durationMinutes || (skill === "listening" ? 30 : 60)
+
+              return (
+                <Card
+                  key={test.slug || test.id}
+                  className="rounded-[2px] border-border/70 bg-background transition-colors hover:border-border"
+                >
+                  <CardHeader className="p-3 pb-1.5">
+                    <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground uppercase">
+                      <span>{test.module || "Academic"}</span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="size-2.5" />
+                        {duration}m
+                      </span>
+                    </div>
+                    <CardTitle className="text-[13px] font-medium leading-snug line-clamp-2 pt-1">
+                      {test.title}
+                    </CardTitle>
+                  </CardHeader>
+
+                  <CardFooter className="p-3 pt-2 flex items-center justify-end border-t border-border/40">
+                    <Button
+                      size="sm"
+                      disabled={Boolean(loadingSlug)}
+                      onClick={() => onStart(skill, test)}
+                      className="h-7 rounded-[2px] px-2.5 text-[11px] font-medium font-mono"
+                    >
+                      {isLoadingThis ? (
+                        <>
+                          <Loader2 className="mr-1.5 size-3 animate-spin" />
+                          Loading…
+                        </>
+                      ) : (
+                        <>
+                          <Play className="mr-1.5 size-3" />
+                          Start
+                        </>
+                      )}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              )
+            })}
+
+            {/* Load more "Xem tiếp" without pagination controls */}
+            {hasMore ? (
+              <div className="pt-2 flex flex-col items-center gap-1.5 border-t border-border/40">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setVisibleCount((prev) => prev + INITIAL_HOME_TESTS)}
+                  className="w-full h-8 rounded-[2px] text-[11px] font-mono border-dashed hover:border-foreground/40 gap-1"
+                >
+                  <span>Xem tiếp (+{Math.min(INITIAL_HOME_TESTS, remainingCount)} bài)</span>
+                  <ChevronDown className="size-3" />
+                </Button>
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  Đang hiện {visibleTests.length} / {newTests.length} bài mới
+                </span>
+              </div>
+            ) : newTests.length > INITIAL_HOME_TESTS ? (
+              <div className="pt-2 flex items-center justify-between border-t border-border/40 text-[10px] font-mono text-muted-foreground">
+                <span>Đã hiển thị đủ {newTests.length} bài</span>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => setVisibleCount(INITIAL_HOME_TESTS)}
+                  className="h-5 px-1.5 text-[10px] font-mono text-muted-foreground hover:text-foreground gap-1"
+                >
+                  <span>Thu gọn</span>
+                  <ChevronUp className="size-2.5" />
+                </Button>
+              </div>
+            ) : null}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export function HomeView({
+  progress,
+  onNavigate,
+  onStartTest,
+  onLoadTest,
+  listeningTests = [],
+  readingTests = [],
+  writingTests = [],
+}: HomeViewProps) {
+  const isHydrated = useSyncExternalStore(emptySubscribe, () => true, () => false)
+  const [loadingSlug, setLoadingSlug] = React.useState<string | null>(null)
+
   const readingAvg = averageReadingScore(progress.reading || [])
   const writingAvg = averageWritingBand(progress.writing || [])
   const listeningAvg = averageListeningBand(progress.listening || [])
@@ -135,122 +308,49 @@ export function HomeView({ progress, onNavigate }: HomeViewProps) {
     [activityData]
   )
 
+  const handleStart = async (skill: SkillType, test: PracticeTest) => {
+    setLoadingSlug(test.slug)
+    try {
+      if (onLoadTest) {
+        await onLoadTest(test)
+      }
+      onStartTest(skill, test.slug)
+    } finally {
+      setLoadingSlug(null)
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-10">
-      <section aria-labelledby="welcome-heading" className="border-b border-foreground pb-7">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-end">
-          <div>
-            <h1 id="welcome-heading" className="max-w-3xl text-4xl font-semibold leading-[0.95] tracking-[-0.04em] sm:text-5xl">
-              IELTS Practice Dashboard
-            </h1>
-            <p className="mt-5 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
-              Complete targeted listening, academic reading passages, and criteria-graded writing tasks.
-              Your study records and daily consistency are kept locally in your browser.
-            </p>
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Button
-                onClick={() => onNavigate("reading")}
-                className="h-10 rounded-[2px] px-4 text-[11px] font-medium"
-              >
-                Choose a reading test
-                <ArrowRight className="ml-2 size-3.5" />
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => onNavigate("writing")}
-                className="h-10 rounded-[2px] px-4 text-[11px] font-medium"
-              >
-                Practice writing
-              </Button>
-            </div>
-          </div>
+    <div className="flex flex-col gap-6">
+      {/* Title */}
+      <div>
+        <h1 className="text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">
+          IELTS Practice Dashboard
+        </h1>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Progress and test library synchronized locally on this device.
+        </p>
+      </div>
 
-          <dl className="grid grid-cols-4 border-y border-border sm:grid-cols-4 lg:grid-cols-2">
-            <div className="border-r border-border py-3 pr-3 lg:border-b">
-              <dt className="text-[10px] font-mono uppercase tracking-[0.12em] text-muted-foreground">Listening</dt>
-              <dd className="mt-1 text-xl font-mono font-medium tabular-nums">{listeningAvg !== null ? listeningAvg.toFixed(1) : "No score"}</dd>
-            </div>
-            <div className="border-r border-border py-3 px-3 lg:border-b lg:border-r-0">
-              <dt className="text-[10px] font-mono uppercase tracking-[0.12em] text-muted-foreground">Reading</dt>
-              <dd className="mt-1 text-xl font-mono font-medium tabular-nums">{readingAvg !== null ? `${readingAvg.toFixed(0)}%` : "No score"}</dd>
-            </div>
-            <div className="border-r border-border py-3 pr-3 pl-0 sm:pl-3 lg:border-r lg:pl-0">
-              <dt className="text-[10px] font-mono uppercase tracking-[0.12em] text-muted-foreground">Writing</dt>
-              <dd className="mt-1 text-xl font-mono font-medium tabular-nums">{writingAvg !== null ? writingAvg.toFixed(1) : "No score"}</dd>
-            </div>
-            <div className="py-3 pl-3 sm:pl-3">
-              <dt className="text-[10px] font-mono uppercase tracking-[0.12em] text-muted-foreground">Sessions</dt>
-              <dd className="mt-1 text-xl font-mono font-medium tabular-nums">{totalSessions}</dd>
-            </div>
-          </dl>
-        </div>
-      </section>
-
-      <section aria-labelledby="practice-heading">
-        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 id="practice-heading" className="text-2xl font-semibold tracking-[-0.03em]">Choose your next practice</h2>
-            <p className="mt-1 text-[12px] text-muted-foreground">Pick one skill. Feedback appears as soon as you finish.</p>
-          </div>
-        </div>
-
-        <div className="border-y border-foreground">
-          <button
-            type="button"
-            onClick={() => onNavigate("reading")}
-            className="group grid min-h-28 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border bg-foreground px-4 py-5 text-left text-background transition-colors hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-background sm:grid-cols-[minmax(0,1fr)_auto] sm:px-5"
-          >
-            <span className="min-w-0">
-              <span className="flex items-center gap-2 text-[16px] font-medium tracking-tight">
-                <BookOpen className="size-4" aria-hidden="true" />
-                Reading practice
-              </span>
-              <span className="mt-1 block max-w-xl text-[11px] leading-relaxed text-background/65">Academic reading passages with 60m timer and answer review.</span>
-            </span>
-            <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-background/70">Start <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" /></span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onNavigate("listening")}
-            className="group grid min-h-24 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border px-4 py-5 text-left transition-colors hover:bg-muted/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-foreground sm:grid-cols-[minmax(0,1fr)_auto] sm:px-5"
-          >
-            <span className="min-w-0">
-              <span className="flex items-center gap-2 text-[15px] font-medium tracking-tight"><Volume2 className="size-4" aria-hidden="true" />Listening practice</span>
-              <span className="mt-1 block max-w-xl text-[11px] leading-relaxed text-muted-foreground">Standard 30m audio track with automated band computation.</span>
-            </span>
-            <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onNavigate("writing")}
-            className="group grid min-h-24 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-5 text-left transition-colors hover:bg-muted/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-foreground sm:grid-cols-[minmax(0,1fr)_auto] sm:px-5"
-          >
-            <span className="min-w-0">
-              <span className="flex items-center gap-2 text-[15px] font-medium tracking-tight"><PenTool className="size-4" aria-hidden="true" />Writing practice</span>
-              <span className="mt-1 block max-w-xl text-[11px] leading-relaxed text-muted-foreground">Task 1 and Task 2 drafting with local auto-save and criteria analysis.</span>
-            </span>
-            <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden="true" />
-          </button>
-        </div>
-      </section>
-
-      <section aria-labelledby="activity-heading" className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-start">
-        <Card className="rounded-none border-x-0 border-b border-t border-foreground py-0 shadow-none">
-          <CardHeader className="border-b border-border px-0 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-0">
+      {/* 7-Day Chart (75%) + 4 Score Cards (25%) */}
+      <section aria-label="Practice Activity and Scores" className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+        {/* Left: 7-Day Chart (~75%) */}
+        <Card className="lg:col-span-9 rounded-[3px] border border-border shadow-none flex flex-col justify-between">
+          <CardHeader className="border-b border-border/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle id="activity-heading" className="text-[15px] font-semibold tracking-tight">7-Day Practice Activity</CardTitle>
-              <CardDescription className="mt-1 text-[11px]">Completed sessions across Listening, Reading, and Writing over the last 7 calendar days.</CardDescription>
+              <CardTitle className="text-sm font-semibold tracking-tight">7-Day Practice Activity</CardTitle>
+              <CardDescription className="text-[11px]">Sessions completed across Listening, Reading, and Writing.</CardDescription>
             </div>
-            <div className="mt-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.08em] text-muted-foreground sm:mt-0">
-              <Calendar className="size-3.5" aria-hidden="true" />
+            <div className="mt-2 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-muted-foreground sm:mt-0">
+              <Calendar className="size-3" aria-hidden="true" />
               <span>{activePastWeekSessions} session{activePastWeekSessions === 1 ? "" : "s"} logged</span>
             </div>
           </CardHeader>
-          <CardContent className="px-0 py-4">
-            <ChartContainer config={activityChartConfig} className="aspect-auto h-44 w-full">
-              <BarChart accessibilityLayer data={activityData} margin={{ top: 12, right: 8, left: -20, bottom: 0 }}>
+          <CardContent className="px-3 pt-3 pb-1">
+            <ChartContainer config={activityChartConfig} className="aspect-auto h-36 w-full">
+              <BarChart accessibilityLayer data={activityData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/60" />
-                <XAxis dataKey="day" tickLine={false} tickMargin={8} axisLine={false} className="text-[11px] font-mono fill-muted-foreground" />
+                <XAxis dataKey="day" tickLine={false} tickMargin={6} axisLine={false} className="text-[10px] font-mono fill-muted-foreground" />
                 <YAxis allowDecimals={false} domain={[0, Math.max(4, maxDailySessions)]} tickLine={false} axisLine={false} tickMargin={6} className="text-[10px] font-mono fill-muted-foreground" />
                 <ChartTooltip
                   cursor={false}
@@ -267,47 +367,89 @@ export function HomeView({ progress, onNavigate }: HomeViewProps) {
                     />
                   }
                 />
-                <Bar dataKey="sessions" fill="var(--color-sessions)" radius={[2, 2, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="sessions" fill="var(--color-sessions)" radius={[2, 2, 0, 0]} maxBarSize={36} />
               </BarChart>
             </ChartContainer>
           </CardContent>
-          <CardFooter className="flex flex-col items-start justify-between gap-2 border-t border-border px-0 py-3 text-[11px] text-muted-foreground sm:flex-row sm:items-center">
-            <span className="flex items-center gap-2">
-              <span className="size-2 rounded-[1px] bg-foreground" aria-hidden="true" />
-              {activePastWeekSessions > 0 ? `${activePastWeekSessions} total recorded practice tasks in the last 7 days` : "No practice logged in the last 7 days. Complete any test to track your streak."}
-            </span>
-            <Button variant="ghost" size="sm" onClick={() => onNavigate("progress")} className="h-7 px-0 text-[11px] font-mono text-muted-foreground hover:text-foreground">
-              View detailed progress <TrendingUp className="ml-1 size-3" />
+          <CardFooter className="border-t border-border/80 px-4 py-2 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+            <span>Streak: {activePastWeekSessions} past 7d</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onNavigate("progress")}
+              className="h-6 px-1 text-[10px] font-mono hover:text-foreground"
+            >
+              History <ArrowRight className="ml-1 size-2.5" />
             </Button>
           </CardFooter>
         </Card>
 
-        <aside className="border-t border-foreground pt-4" aria-label="Practice record summary">
-          <p className="mt-3 text-3xl font-semibold tracking-[-0.04em]">{totalSessions}</p>
-          <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">completed practice session{totalSessions === 1 ? "" : "s"} saved in this browser.</p>
-          <Button variant="outline" size="sm" onClick={() => onNavigate("progress")} className="mt-5 h-8 rounded-[2px] px-3 text-[10px] font-mono uppercase tracking-[0.08em]">Open history</Button>
-        </aside>
-      </section>
+        {/* Right: 4 Score Rectangles (~25%) */}
+        <div className="lg:col-span-3 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-1 gap-2.5">
+          <div className="flex flex-col justify-center rounded-[3px] border border-border bg-card p-3">
+            <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-muted-foreground">Listening</span>
+            <span className="mt-0.5 text-xl font-mono font-medium tabular-nums">
+              {listeningAvg !== null ? listeningAvg.toFixed(1) : "—"}
+            </span>
+          </div>
 
-      <section aria-labelledby="review-heading" className="border-t border-foreground pt-5">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 id="review-heading" className="text-2xl font-semibold tracking-[-0.03em]">Review tools</h2>
-            <p className="mt-1 text-[12px] text-muted-foreground">Use your results to decide what to practice next.</p>
+          <div className="flex flex-col justify-center rounded-[3px] border border-border bg-card p-3">
+            <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-muted-foreground">Reading</span>
+            <span className="mt-0.5 text-xl font-mono font-medium tabular-nums">
+              {readingAvg !== null ? `${readingAvg.toFixed(0)}%` : "—"}
+            </span>
+          </div>
+
+          <div className="flex flex-col justify-center rounded-[3px] border border-border bg-card p-3">
+            <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-muted-foreground">Writing</span>
+            <span className="mt-0.5 text-xl font-mono font-medium tabular-nums">
+              {writingAvg !== null ? writingAvg.toFixed(1) : "—"}
+            </span>
+          </div>
+
+          <div className="flex flex-col justify-center rounded-[3px] border border-border bg-card p-3">
+            <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-muted-foreground">Sessions</span>
+            <span className="mt-0.5 text-xl font-mono font-medium tabular-nums">
+              {totalSessions}
+            </span>
           </div>
         </div>
-        <div className="mt-4 grid border-y border-border sm:grid-cols-2 sm:divide-x sm:divide-border">
-          <button type="button" onClick={() => onNavigate("coach")} className="group flex min-h-24 items-center gap-3 border-b border-border py-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-foreground sm:border-b-0 sm:pr-6">
-            <GraduationCap className="size-4 shrink-0" aria-hidden="true" />
-            <span><span className="block text-[12px] font-medium">Writing criteria diagnosis</span><span className="mt-1 block text-[11px] leading-relaxed text-muted-foreground">Identify weakest scoring criterion across past drafts.</span></span>
-            <ArrowRight className="ml-auto size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden="true" />
-          </button>
-          <button type="button" onClick={() => onNavigate("explain")} className="group flex min-h-24 items-center gap-3 py-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-foreground sm:pl-6">
-            <MessageSquare className="size-4 shrink-0" aria-hidden="true" />
-            <span><span className="block text-[12px] font-medium">Answer explanation lookup</span><span className="mt-1 block text-[11px] leading-relaxed text-muted-foreground">Query detailed rationale for specific reading questions.</span></span>
-            <ArrowRight className="ml-auto size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden="true" />
-          </button>
-        </div>
+      </section>
+
+      {/* 3 Columns: New exercises per skill */}
+      <section aria-label="New Practice Tests" className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+        <SkillColumn
+          title="Listening"
+          skill="listening"
+          icon={Volume2}
+          tests={listeningTests}
+          isHydrated={isHydrated}
+          loadingSlug={loadingSlug}
+          onStart={handleStart}
+          onNavigate={onNavigate}
+        />
+
+        <SkillColumn
+          title="Reading"
+          skill="reading"
+          icon={BookOpen}
+          tests={readingTests}
+          isHydrated={isHydrated}
+          loadingSlug={loadingSlug}
+          onStart={handleStart}
+          onNavigate={onNavigate}
+        />
+
+        <SkillColumn
+          title="Writing"
+          skill="writing"
+          icon={PenTool}
+          tests={writingTests}
+          isHydrated={isHydrated}
+          loadingSlug={loadingSlug}
+          onStart={handleStart}
+          onNavigate={onNavigate}
+        />
       </section>
     </div>
   )

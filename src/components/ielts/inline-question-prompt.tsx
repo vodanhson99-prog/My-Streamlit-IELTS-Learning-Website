@@ -1,5 +1,6 @@
 "use client"
 
+import { Volume2 } from "lucide-react"
 import { UniversalQuestion } from "@/lib/ielts"
 
 interface InlineQuestionPromptProps {
@@ -10,6 +11,7 @@ interface InlineQuestionPromptProps {
   isSubmitted?: boolean
   isCorrect?: boolean
   isWrong?: boolean
+  onListen?: () => void
 }
 
 /**
@@ -25,6 +27,7 @@ export function InlineQuestionPrompt({
   isSubmitted = false,
   isCorrect = false,
   isWrong = false,
+  onListen,
 }: InlineQuestionPromptProps) {
   const promptText = question.prompt.trim()
   const inputValue = Array.isArray(value) ? value.join(", ") : value
@@ -89,9 +92,24 @@ export function InlineQuestionPrompt({
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <label htmlFor={inputId} className="flex-1 font-medium text-foreground leading-relaxed cursor-pointer">
-          <span className="inline-block px-1.5 py-0.5 mr-2 font-mono text-[11px] font-semibold rounded-[2px] bg-muted text-muted-foreground border border-border">
+          <span className="inline-block px-1.5 py-0.5 mr-1 font-mono text-[11px] font-semibold rounded-[2px] bg-muted text-muted-foreground border border-border">
             Q{question.number}
           </span>
+          {onListen && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onListen()
+              }}
+              title="Listen from here"
+              aria-label={`Listen to Question ${question.number}`}
+              className="inline-flex items-center justify-center size-5 mr-1.5 align-middle rounded-[2px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <Volume2 className="size-3" />
+            </button>
+          )}
           {content}
         </label>
 

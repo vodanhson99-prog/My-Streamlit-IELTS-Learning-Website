@@ -157,6 +157,17 @@ function cleanPromptText(raw: string): string {
     .trim()
 }
 
+export function extractReadingPassage(panelHtml: string): string | undefined {
+  let cleaned = panelHtml
+
+  // Remove elements containing questions or instructions
+  cleaned = cleaned.replace(/<div[^>]*class=["'][^"']*test-panel__heading[^"']*["'][\s\S]*?<\/div>/gi, "")
+  cleaned = cleaned.replace(/<div[^>]*class=["'][^"']*test-panel__(?:item|questions|instruction)[^"']*["'][\s\S]*?(?=<div[^>]*class=["'][^"']*test-panel__(?:item|questions|instruction)|<\/section|$)/gi, "")
+
+  const text = stripTags(cleaned).trim()
+  return text || undefined
+}
+
 function parseAnswerValue(value: string): QuestionAnswer {
   const cleaned = value.trim()
   if (!cleaned.includes(",") && !/\s+and\s+/i.test(cleaned)) return cleaned
@@ -166,24 +177,118 @@ function parseAnswerValue(value: string): QuestionAnswer {
     .filter(Boolean)
 }
 
-function extractAudioTimestamp(raw: string): number | undefined {
-  const value = raw.match(/data-time=["'](\d+(?:\.\d+)?)["']/i)?.[1]
-  return value ? Number(value) : undefined
+export function extractAudioTimestamp(raw: string): number | undefined {
+  const dataTime = raw.match(/data-(?:audio-)?time=["'](\d+(?:\.\d+)?)["']/i)?.[1]
+  if (dataTime) return Number(dataTime)
+
+  const textTime = raw.match(/(?:listen\s+from\s+here|listen|audio)\s*\(?(\d{1,2}):(\d{2})\)?/i)
+  if (textTime) {
+    const mins = Number(textTime[1])
+    const secs = Number(textTime[2])
+    return mins * 60 + secs
+  }
+  return undefined
 }
 
 function extractQuestionGroup(raw: string, firstNumber: number): UniversalQuestion["group"] | undefined {
   const range = raw.match(/(?:question(?:s)?\s*)?(\d+)\s*[-–]\s*(\d+)/i)
   const minAnswers = raw.match(/(?:mark|choose|select)\s+(?:the\s+)?(?:three|3|two|2|four|4)\s+(?:letter|letters|answer|answers)/i)?.[0]
-  if (!range && !minAnswers) return undefined
+  const audioTimestamp = extractAudioTimestamp(raw)
+  if (!range && !minAnswers && audioTimestamp === undefined) return undefined
   const min = minAnswers?.match(/(?:three|3)/i) ? 3 : minAnswers?.match(/(?:two|2)/i) ? 2 : minAnswers?.match(/(?:four|4)/i) ? 4 : undefined
   return {
     answerRange: range ? [Number(range[1]), Number(range[2])] : [firstNumber, firstNumber],
     minAnswers: min,
     maxAnswers: min,
+    audioTimestamp,
   }
 }
 
-function parseScopedQuestions(
+export function extractInstructionsFromHtml(html: string): string | undefined {
+  const instructions: string[] = []
+  const seen = new Set<string>()
+
+  // 1. Explicit instruction containers
+  const divMatches = [
+    ...html.matchAll(
+      /<div[^>]*class=["'][^"']*(?:test-panel__instruction|test-panel__desc|test-panel__guide)[^"']*["'][^>]*>([\s\S]*?)<\/div>/gi
+    ),
+  ]
+  for (const m of divMatches) {
+    const raw = m[1]
+    if (/<input/i.test(raw)) continue
+    const text = cleanText(raw).replace(/Listen from here\s*(?:\(\d+:\d+\))?/gi, "").trim()
+    if (text.length > 5 && !seen.has(text)) {
+      seen.add(text)
+      instructions.push(text)
+    }
+  }
+
+  // 2. Paragraphs with IELTS instruction patterns
+  const pMatches = [...html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
+  const instructionPattern =
+    /\b(?:complete\s+the\s+(?:form|notes?|table|summary|sentences?|diagram|plan|map|flow-chart)|write\s+no\s+more\s+than|no\s+more\s+than\s+(?:one|two|three|\d+)\s+words|answer\s+the\s+(?:following\s+)?questions|choose\s+(?:the\s+correct|two|three|\d+)\s+(?:letter|letters|answer)|which\s+(?:paragraph|statement)\s+contains|in\s+boxes\s+\d+[-–]\d+)\b/i
+
+  for (const m of pMatches) {
+    const raw = m[1]
+    if (/<input/i.test(raw)) continue
+    if (instructionPattern.test(raw)) {
+      const text = cleanText(raw).replace(/Listen from here\s*(?:\(\d+:\d+\))?/gi, "").trim()
+      if (text.length > 5 && !seen.has(text)) {
+        seen.add(text)
+        instructions.push(text)
+      }
+    }
+  }
+
+  if (instructions.length === 0) return undefined
+  return instructions.join(" ")
+}
+
+function findPrecedingPrompt(
+  pMatches: RegExpMatchArray[],
+  currentIndex: number,
+  panelHtml: string,
+  matchIndex?: number
+): string {
+  // 1. Check preceding <p> elements
+  for (let k = currentIndex - 1; k >= Math.max(0, currentIndex - 3); k--) {
+    const raw = pMatches[k][1]
+    if (/<input/i.test(raw)) break
+    const text = cleanPromptText(raw)
+    const isInstruction =
+      /^(?:write\s+no\s+more|complete\s+the|choose\s+the\s+correct|answer\s+the\s+following\s+questions)/i.test(
+        text
+      )
+    if (text.length > 0 && !isInstruction) {
+      return text
+    }
+  }
+
+  // 2. Fallback: check preceding heading/div in HTML slice
+  if (matchIndex !== undefined && matchIndex > 0) {
+    const sliceBefore = panelHtml.slice(Math.max(0, matchIndex - 500), matchIndex)
+    const headingMatches = [
+      ...sliceBefore.matchAll(/<(?:h[3-6]|div|p|li)[^>]*>([\s\S]*?)<\/(?:h[3-6]|div|p|li)>/gi),
+    ]
+    for (let k = headingMatches.length - 1; k >= 0; k--) {
+      const raw = headingMatches[k][1]
+      if (/<input/i.test(raw)) break
+      const text = cleanPromptText(raw)
+      const isInstruction =
+        /^(?:write\s+no\s+more|complete\s+the|choose\s+the\s+correct|answer\s+the\s+following\s+questions)/i.test(
+          text
+        )
+      if (text.length > 0 && !isInstruction) {
+        return text
+      }
+    }
+  }
+
+  return ""
+}
+
+export function parseScopedQuestions(
   panelHtml: string,
   skill: "listening" | "reading" | "writing",
   answers: Map<number, string | number | (string | number)[]>
@@ -273,6 +378,11 @@ function parseScopedQuestions(
     const inputMatches = [...trContent.matchAll(/<input[^>]+data-num=["'](\d+)["'][^>]*>/gi)]
     if (inputMatches.length === 0) continue
 
+    // If table row contains multiple <p> tags with inputs, delegate to paragraph parser
+    if (inputMatches.length > 1 && /<p[^>]*>[\s\S]*?<input/i.test(trContent)) {
+      continue
+    }
+
     for (const inp of inputMatches) {
       const num = Number(inp[1])
       let rowReplaced = trContent.replace(
@@ -286,43 +396,70 @@ function parseScopedQuestions(
       rowReplaced = rowReplaced.replace(/<input[^>]+data-num=["']\d+["'][^>]*>/gi, " ___ ")
       const prompt = cleanPromptText(rowReplaced)
 
+      const qTimestamp = extractAudioTimestamp(
+        panelHtml.slice(Math.max(0, (match.index ?? 0) - 300), (match.index ?? 0) + match[0].length)
+      )
       addQuestion({
         id: `${skill}-q${num}`,
         number: num,
         type: "fill_in_blank",
         prompt: prompt.includes("[input]") ? prompt : `${prompt} [input]`,
         answer: parseAnswerValue(String(answers.get(num) ?? "")),
+        audioTimestamp: qTimestamp,
       })
     }
   }
 
   // 4. Paragraphs with fill-in-blank (<p...>)
   const pMatches = [...panelHtml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
-  for (const match of pMatches) {
-    const pContent = match[1]
+  for (let pIndex = 0; pIndex < pMatches.length; pIndex++) {
+    const pMatch = pMatches[pIndex]
+    const pContent = pMatch[1]
     const inputMatches = [...pContent.matchAll(/<input[^>]+data-num=["'](\d+)["'][^>]*>/gi)]
     if (inputMatches.length === 0) continue
 
-    for (const inp of inputMatches) {
-      const num = Number(inp[1])
-      let pReplaced = pContent.replace(
-        /<span[^>]+class=["'][^"']*test-panel__question-num[^"']*["']>[\s\S]*?<\/span>/gi,
-        ""
-      )
-      pReplaced = pReplaced.replace(
-        new RegExp(`<input[^>]+data-num=["']${num}["'][^>]*>`, "gi"),
-        " [input] "
-      )
-      pReplaced = pReplaced.replace(/<input[^>]+data-num=["']\d+["'][^>]*>/gi, " ___ ")
-      const prompt = cleanPromptText(pReplaced)
+    // If <p> contains <br> separating multiple lines, split by <br>
+    const lines = pContent.includes("<br") ? pContent.split(/<br\s*\/?>/i) : [pContent]
+    for (const line of lines) {
+      const lineInputs = [...line.matchAll(/<input[^>]+data-num=["'](\d+)["'][^>]*>/gi)]
+      if (lineInputs.length === 0) continue
 
-      addQuestion({
-        id: `${skill}-q${num}`,
-        number: num,
-        type: "fill_in_blank",
-        prompt: prompt.includes("[input]") ? prompt : `${prompt} [input]`,
-        answer: parseAnswerValue(String(answers.get(num) ?? "")),
-      })
+      for (const inp of lineInputs) {
+        const num = Number(inp[1])
+        let lineReplaced = line.replace(
+          /<span[^>]+class=["'][^"']*test-panel__question-num[^"']*["']>[\s\S]*?<\/span>/gi,
+          ""
+        )
+        lineReplaced = lineReplaced.replace(
+          new RegExp(`<input[^>]+data-num=["']${num}["'][^>]*>`, "gi"),
+          " [input] "
+        )
+        lineReplaced = lineReplaced.replace(/<input[^>]+data-num=["']\d+["'][^>]*>/gi, " ___ ")
+        let prompt = cleanPromptText(lineReplaced)
+
+        const bareText = prompt.replace(/\[input\]/g, "").replace(/[$€£¥\-–—:.]/g, "").trim()
+        if (bareText.length === 0) {
+          const prevPrompt = findPrecedingPrompt(pMatches, pIndex, panelHtml, pMatch.index)
+          if (prevPrompt) {
+            prompt = prompt.includes("[input]") ? `${prevPrompt} ${prompt}` : `${prevPrompt} [input]`
+          }
+        }
+
+        prompt = prompt.replace(/\s+/g, " ").trim()
+
+        const qTimestamp = extractAudioTimestamp(
+          panelHtml.slice(Math.max(0, (pMatch.index ?? 0) - 300), (pMatch.index ?? 0) + pMatch[0].length)
+        )
+
+        addQuestion({
+          id: `${skill}-q${num}`,
+          number: num,
+          type: "fill_in_blank",
+          prompt: prompt.includes("[input]") ? prompt : `${prompt} [input]`,
+          answer: parseAnswerValue(String(answers.get(num) ?? "")),
+          audioTimestamp: qTimestamp,
+        })
+      }
     }
   }
 
@@ -390,7 +527,7 @@ function parseScopedQuestions(
   return questions.sort((a, b) => a.number - b.number)
 }
 
-function parsePageSections(html: string, skill: "listening" | "reading" | "writing", answers: Map<number, string | number | (string | number)[]>): PracticeSection[] {
+export function parsePageSections(html: string, skill: "listening" | "reading" | "writing", answers: Map<number, string | number | (string | number)[]>): PracticeSection[] {
   const sections: PracticeSection[] = []
   const audioUrls = [...html.matchAll(/<source[^>]+src=["']([^"']+)["']/gi)].map((match) => decodeHtml(match[1]))
   const panelMatches = [...html.matchAll(/<section[^>]+class=["'][^"']*test-panel[^"']*["'][\s\S]*?<\/section>/gi)]
@@ -401,6 +538,25 @@ function parsePageSections(html: string, skill: "listening" | "reading" | "writi
     if (questions.length === 0) return
 
     const title = stripTags(panel.match(/<h2[^>]*class=["'][^"']*test-panel__title[^"']*["'][^>]*>([\s\S]*?)<\/h2>/i)?.[1] || "") || `Part ${panelIndex + 1}`
+    const instructions = extractInstructionsFromHtml(panel) || (skill === "reading" ? "Read the passage and answer the questions below." : undefined)
+    const passageText = skill === "reading" ? extractReadingPassage(panel) : undefined
+    
+    // Deduplicate Reading sections if they have identical passage text and title
+    if (skill === "reading" && passageText && sections.length > 0) {
+      const lastSection = sections[sections.length - 1]
+      if (lastSection.passageText === passageText && lastSection.title === title) {
+        // Merge questions into the last section, avoiding duplicates
+        const existingNumbers = new Set(lastSection.questions.map(q => q.number))
+        for (const q of questions) {
+          if (!existingNumbers.has(q.number)) {
+            lastSection.questions.push(q)
+            existingNumbers.add(q.number)
+          }
+        }
+        lastSection.questions.sort((a, b) => a.number - b.number)
+        return // Skip pushing a new section
+      }
+    }
     const examples: PracticeExample[] = [...panel.matchAll(/<p[^>]*>\s*(?:example|sample)\s*:?\s*([\s\S]*?)<\/p>/gi)]
       .map((match) => ({ prompt: cleanText(match[1]) }))
       .filter((example) => example.prompt)
@@ -420,10 +576,10 @@ function parsePageSections(html: string, skill: "listening" | "reading" | "writi
         }
       : undefined
     sections.push({
-      id: `sec-${panelIndex + 1}`,
+      id: `sec-${sections.length + 1}`,
       title,
-      instructions: stripTags(panel).slice(0, 500),
-      passageText: skill === "reading" ? stripTags(panel) : undefined,
+      instructions,
+      passageText,
       audioUrl: audioUrls[panelIndex] || audioUrls[0],
       audioTimestamp: extractAudioTimestamp(panel),
       examples: examples.length > 0 ? examples : undefined,
@@ -442,7 +598,7 @@ function parsePageSections(html: string, skill: "listening" | "reading" | "writi
         id: "sec-1",
         title: skill === "listening" ? "Listening test" : "Reading passage",
         instructions: "Complete all questions.",
-        passageText: skill === "reading" ? stripTags(html).slice(0, 5000) : undefined,
+        passageText: skill === "reading" ? extractReadingPassage(html) : undefined,
         audioUrl: audioUrls[0],
         questions: numbers.map((number) => ({
           id: `${skill}-q${number}`,

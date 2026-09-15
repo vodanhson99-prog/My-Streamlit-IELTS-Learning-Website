@@ -1,5 +1,5 @@
 ---
-name: IELTS Prep
+name: ielts with rbs
 description: Focused, local-first IELTS practice workspace
 colors:
   paper: "#ffffff"
@@ -55,13 +55,13 @@ components:
     padding: "20px"
 ---
 
-# Design System: IELTS Prep
+# Design System: ielts with rbs
 
 ## Overview
 
 **Creative North Star: "The Study Sheet"**
 
-IELTS Prep uses a focused working surface for learners who want to begin practice without navigating a noisy dashboard. The homepage uses paper-white space, black ink, ruled divisions, condensed display type, and quiet monospaced measurements. Structure carries emphasis; decoration stays out of the way.
+ielts with rbs uses a focused working surface for learners who want to begin practice without navigating a noisy dashboard. The homepage uses paper-white space, black ink, ruled divisions, condensed display type, and quiet monospaced measurements. Structure carries emphasis; decoration stays out of the way.
 
 The visual system is restrained and high-contrast. Full-width practice rows create the main action surface, while progress and review remain supporting evidence. Interaction uses clear filled, outlined, and tonal states with visible keyboard focus.
 

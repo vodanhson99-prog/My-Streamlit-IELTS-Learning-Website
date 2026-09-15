@@ -48,15 +48,7 @@ export async function GET() {
       })
     }
 
-    const mergedTests: PracticeTest[] = [...scrapedAll]
-    for (const fallback of FALLBACK_PRACTICE_TESTS) {
-      const existingIdx = mergedTests.findIndex((test) => test.id === fallback.id || test.title === fallback.title)
-      if (existingIdx >= 0) {
-        mergedTests[existingIdx] = { ...fallback, ...mergedTests[existingIdx], sections: fallback.sections }
-      } else {
-        mergedTests.unshift(fallback)
-      }
-    }
+    const mergedTests: PracticeTest[] = scrapedAll
 
     return NextResponse.json({
       source: "live",

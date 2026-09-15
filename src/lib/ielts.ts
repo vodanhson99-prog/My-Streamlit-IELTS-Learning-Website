@@ -21,6 +21,9 @@ export interface QuestionGroup {
   minAnswers?: number
   maxAnswers?: number
   answerRange?: [number, number]
+  title?: string
+  instructions?: string
+  audioTimestamp?: number
 }
 
 export function answerValues(answer: QuestionAnswer): string[] {

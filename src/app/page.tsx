@@ -19,7 +19,7 @@ export default function AppShell() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>("home")
   const { progress, isLoaded, clearProgress } = useProgress()
-  const { source: catalogSource, isLoading: isCatalogLoading, getTestsBySkill } = usePracticeCatalog()
+  const { source: catalogSource, isLoading: isCatalogLoading, getTestsBySkill, loadTestDetail } = usePracticeCatalog()
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export default function AppShell() {
         Skip to main content
       </a>
 
-      <main id="main-content" className="flex-1 mx-auto w-full max-w-6xl px-4 sm:px-6 py-6 pb-8">
+      <main id="main-content" className="flex-1 mx-auto w-full max-w-6xl px-4 sm:px-6 py-6 pb-24 md:pb-8">
         <aside aria-label="System status" className="mb-4 hidden justify-end gap-2 md:flex">
           <Badge variant="outline" className="text-[10px] font-mono rounded-[3px] px-2 py-0.5 items-center gap-1.5">
             <span className={`size-1.5 rounded-full ${catalogSource === "live" ? "bg-foreground" : "bg-muted-foreground"}`} />
@@ -69,7 +69,18 @@ export default function AppShell() {
         ) : (
           <PageTransition transitionKey={activeTab}>
             {activeTab === "home" && (
-              <HomeView progress={progress} onNavigate={(tab) => setActiveTab(tab)} />
+              <HomeView
+                progress={progress}
+                onNavigate={(tab) => setActiveTab(tab)}
+                onStartTest={(skill, slug) => {
+                  saveSelectedSlug(skill, slug)
+                  router.push(`/${skill}/${slug}`)
+                }}
+                onLoadTest={loadTestDetail}
+                listeningTests={getTestsBySkill("listening")}
+                readingTests={getTestsBySkill("reading")}
+                writingTests={getTestsBySkill("writing")}
+              />
             )}
             {activeTab === "listening" && (
               <SkillTestPanel

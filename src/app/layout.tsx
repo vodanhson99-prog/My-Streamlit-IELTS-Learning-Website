@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Albert_Sans, Alumni_Sans, JetBrains_Mono } from "next/font/google"
+import { GlobalTypingProvider } from "@/components/ielts/global-typing-provider"
 import { PracticeNavbar } from "@/components/ielts/practice-navbar"
 import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
@@ -26,7 +27,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "IELTS Practice Documentation & System",
+  title: "ielts with rbs",
   description:
     "Developer-grade IELTS preparation platform with test catalogs, band conversion, instant feedback, and progress diagnostics.",
 }
@@ -49,6 +50,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <GlobalTypingProvider />
           <PracticeNavbar />
           {children}
         </ThemeProvider>

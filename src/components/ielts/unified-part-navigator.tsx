@@ -1,15 +1,16 @@
 "use client"
 
-import { PracticeSection, answersMatch, hasAnswer } from "@/lib/ielts"
+import { PracticeSection, QuestionAnswer, answersMatch, hasAnswer } from "@/lib/ielts"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 interface UnifiedPartNavigatorProps {
   sections: PracticeSection[]
   activePartIndex: number
   onSelectPart: (index: number) => void
-  userAnswers: Record<string, string | string[]>
+  userAnswers: Record<string, QuestionAnswer | undefined>
   onQuestionClick?: (questionId: string, sectionIndex: number) => void
   isSubmitted?: boolean
+  partPrefix?: string
 }
 
 export function UnifiedPartNavigator({
@@ -19,6 +20,7 @@ export function UnifiedPartNavigator({
   userAnswers,
   onQuestionClick,
   isSubmitted = false,
+  partPrefix = "Part",
 }: UnifiedPartNavigatorProps) {
   const totalParts = sections.length
   const currentSection = sections[activePartIndex]
@@ -60,7 +62,7 @@ export function UnifiedPartNavigator({
                   }`}
                   aria-pressed={isActive}
                 >
-                  <span>Part {idx + 1}</span>
+                  <span>{partPrefix} {idx + 1}</span>
                   <span className={`text-[10px] ${isActive ? "text-background/80" : "text-muted-foreground"}`}>
                     ({answered}/{qList.length})
                   </span>
@@ -74,7 +76,7 @@ export function UnifiedPartNavigator({
             onClick={() => onSelectPart(Math.min(totalParts - 1, activePartIndex + 1))}
             disabled={activePartIndex >= totalParts - 1}
             className="size-8 rounded-[2px] border border-border inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-colors"
-            aria-label="Next part"
+            aria-label={`Next ${partPrefix.toLowerCase()}`}
           >
             <ChevronRight className="size-4" />
           </button>
@@ -89,11 +91,11 @@ export function UnifiedPartNavigator({
       {currentQuestions.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-border/60">
           <span className="text-[10px] font-mono text-muted-foreground mr-1 sm:hidden">
-            Part {activePartIndex + 1}:
+            {partPrefix} {activePartIndex + 1}:
           </span>
           {currentQuestions.map((q) => {
             const isAnswered = hasAnswer(userAnswers[q.id])
-            const isCorrect = isSubmitted && answersMatch(userAnswers[q.id] || "", q.answer)
+            const isCorrect = isSubmitted && answersMatch(userAnswers[q.id] ?? "", q.answer)
             const isWrong = isSubmitted && isAnswered && !isCorrect
 
             return (

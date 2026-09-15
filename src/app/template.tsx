@@ -7,9 +7,5 @@ import type { ReactNode } from "react"
 export default function Template({ children }: { children: ReactNode }) {
   const pathname = usePathname()
 
-  if (pathname === "/") {
-    return <>{children}</>
-  }
-
   return <PageTransition transitionKey={pathname}>{children}</PageTransition>
 }

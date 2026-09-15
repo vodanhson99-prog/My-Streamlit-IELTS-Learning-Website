@@ -11,7 +11,7 @@ interface SkillCatalogSkeletonProps {
  */
 export function SkillCatalogSkeleton({
   skillLabel = "Practice",
-  count = 6,
+  count = 10,
 }: SkillCatalogSkeletonProps) {
   return (
     <div
