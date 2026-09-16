@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import type { AIProvider } from "../../src/lib/ai/contracts"
 import type { CriterionEvaluation } from "../../src/lib/ielts-evaluation/contracts"
 import { evaluateTask2 } from "../../src/lib/ielts-evaluation/evaluate-task2"
@@ -82,6 +82,37 @@ describe("evaluateTask2 Orchestration", () => {
 
     expect(result.status).toBe("completed")
     expect(attempts).toBe(2)
+  })
+
+  it("logs bounded diagnostic metadata on retry without exposing essay or response text", async () => {
+    let attempts = 0
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const customGraders = {
+      "task-response": async () => {
+        attempts++
+        if (attempts === 1) throw new Error("secret upstream diagnostics that should not be exposed")
+        return createMockCriterion("task-response", 7)
+      },
+      "coherence-cohesion": async () => createMockCriterion("coherence-cohesion", 7),
+      "lexical-resource": async () => createMockCriterion("lexical-resource", 7),
+      "grammatical-range-accuracy": async () => createMockCriterion("grammatical-range-accuracy", 7),
+    }
+
+    await evaluateTask2({
+      task: { testType: "academic", prompt: "secret prompt text" },
+      essay: "secret essay text",
+      provider: dummyProvider,
+      customGraders,
+    })
+
+    expect(consoleWarn).toHaveBeenCalled()
+    const log = consoleWarn.mock.calls[0][0] as string
+    expect(log).toContain("task-response")
+    expect(log).toContain("attempt=1")
+    expect(log).not.toContain("secret essay text")
+    expect(log).not.toContain("secret prompt text")
+    expect(log).not.toContain("secret upstream diagnostics")
+    consoleWarn.mockRestore()
   })
 
   it("fails closed when one criterion repeatedly fails (no silent average)", async () => {

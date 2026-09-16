@@ -11,6 +11,17 @@ export const AI_PROVIDER_ERROR_CODES = [
 
 export type AIMessageRole = (typeof AI_MESSAGE_ROLES)[number]
 export type AIProviderErrorCode = (typeof AI_PROVIDER_ERROR_CODES)[number]
+export type StructuredFailureKind = "malformed-json" | "schema-invalid" | "provider-timeout" | "provider-failure" | "unknown"
+
+export interface AIDiagnosticMetadata {
+  readonly provider?: AICompletionResult["provider"]
+  readonly model?: string
+  readonly requestId?: string
+  readonly status?: number
+  readonly failureKind: StructuredFailureKind
+  readonly retryCount: number
+  readonly latencyMs: number
+}
 
 export interface AIMessage {
   readonly role: AIMessageRole

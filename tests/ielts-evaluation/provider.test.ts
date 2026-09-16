@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { requestGroq } from "../../src/lib/ai"
-import { AIProviderError, completeStructured, createGroqProvider } from "../../src/lib/ai/provider"
+import { AIProviderError, completeStructured, createGroqProvider, classifyStructuredFailure } from "../../src/lib/ai/provider"
+import { ZodError } from "zod"
 
 const request = {
   messages: [{ role: "user", content: "Evaluate this essay." }],
@@ -23,6 +24,14 @@ async function normalizedError(provider: ReturnType<typeof createGroqProvider>):
 }
 
 afterEach(() => vi.unstubAllGlobals())
+
+describe("structured failure classification", () => {
+  it("classifies bounded failure kinds", () => {
+    expect(classifyStructuredFailure(new SyntaxError("bad JSON"))).toBe("malformed-json")
+    expect(classifyStructuredFailure(new ZodError([]))).toBe("schema-invalid")
+    expect(classifyStructuredFailure(new AIProviderError("timeout", "timeout", true))).toBe("provider-timeout")
+  })
+})
 
 describe("createGroqProvider", () => {
   it("requests non-streaming completions", async () => {

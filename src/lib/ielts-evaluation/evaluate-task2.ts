@@ -1,4 +1,5 @@
 import type { AIProvider } from "../ai/contracts"
+import { AIProviderError, classifyStructuredFailure } from "../ai/provider"
 import { EVALUATION_SCHEMA_VERSION, IELTS_TASK2_CRITERION_IDS, IELTS_TASK2_RUBRIC_VERSION } from "./constants"
 import type {
   AdjudicationRecord,
@@ -84,18 +85,22 @@ export async function evaluateTask2(input: EvaluateTask2Input): Promise<Task2Eva
     criterionId: IeltsTask2CriterionId,
     grader: CriterionGrader,
   ): Promise<{ success: true; evaluation: CriterionEvaluation } | { success: false; error: string }> {
+    const start = Date.now()
     try {
       const evaluation = await grader(graderInput)
       return { success: true, evaluation }
     } catch (firstErr) {
-      console.warn(`[writing-evaluation][task2][${criterionId}][attempt=1] ${firstErr instanceof Error ? firstErr.message : "unknown error"}`)
+      const kind = classifyStructuredFailure(firstErr)
+      const elapsedMs = Date.now() - start
+      const safeMsg = firstErr instanceof AIProviderError ? firstErr.message : "retryable error"
+      console.warn(`[writing-evaluation][task2][${criterionId}][attempt=1] failure=${kind} msg="${safeMsg}" elapsedMs=${elapsedMs}`)
       try {
         const evaluation = await grader(graderInput)
         return { success: true, evaluation }
       } catch (retryErr) {
         return {
           success: false,
-          error: `${criterionId} grading failed after retry: ${retryErr instanceof Error ? retryErr.message : String(retryErr)}`,
+          error: `${criterionId} grading failed after retry: ${retryErr instanceof AIProviderError ? retryErr.message : "failed"}`,
         }
       }
     }

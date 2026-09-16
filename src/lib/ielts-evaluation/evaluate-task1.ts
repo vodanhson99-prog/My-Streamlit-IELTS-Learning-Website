@@ -1,4 +1,5 @@
 import type { AIProvider } from "../ai/contracts"
+import { classifyStructuredFailure, AIProviderError } from "../ai/provider"
 import { EVALUATION_SCHEMA_VERSION } from "./constants"
 import type { EvaluationStability, IeltsHalfBand } from "./contracts"
 import { calculateIeltsHalfBand } from "./scoring/aggregate"
@@ -69,11 +70,15 @@ export async function evaluateTask1(input: EvaluateTask1Input): Promise<Task1Eva
 
   const results = await Promise.all(
     IELTS_TASK1_CRITERION_IDS.map(async (id) => {
+      const start = Date.now()
       try {
         const evaluation = await graders[id](graderInput)
         return { id, success: true as const, evaluation }
       } catch (firstErr) {
-        console.warn(`[writing-evaluation][task1][${id}][attempt=1] ${firstErr instanceof Error ? firstErr.message : "unknown error"}`)
+        const kind = classifyStructuredFailure(firstErr)
+        const elapsedMs = Date.now() - start
+        const safeMsg = firstErr instanceof AIProviderError ? firstErr.message : "retryable error"
+        console.warn(`[writing-evaluation][task1][${id}][attempt=1] failure=${kind} msg="${safeMsg}" elapsedMs=${elapsedMs}`)
         try {
           const evaluation = await graders[id](graderInput)
           return { id, success: true as const, evaluation }
@@ -81,7 +86,7 @@ export async function evaluateTask1(input: EvaluateTask1Input): Promise<Task1Eva
           return {
             id,
             success: false as const,
-            error: retryErr instanceof Error ? retryErr.message : String(retryErr),
+            error: retryErr instanceof AIProviderError ? retryErr.message : "failed",
           }
         }
       }

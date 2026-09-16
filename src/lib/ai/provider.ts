@@ -1,11 +1,21 @@
-import { z } from "zod"
+import { z, ZodError } from "zod"
 import type {
   AICompletionRequest,
   AICompletionResult,
   AIProvider,
   AIProviderErrorCode,
   StructuredAiRequest,
+  StructuredFailureKind,
 } from "./contracts"
+
+export function classifyStructuredFailure(error: unknown): StructuredFailureKind {
+  if (error instanceof SyntaxError) return "malformed-json"
+  if (error instanceof ZodError) return "schema-invalid"
+  if (error instanceof AIProviderError) {
+    return error.code === "timeout" ? "provider-timeout" : "provider-failure"
+  }
+  return "unknown"
+}
 
 const chatCompletionsResponseSchema = z.object({
   choices: z.array(z.object({ message: z.object({ content: z.string().min(1) }) })).min(1),
