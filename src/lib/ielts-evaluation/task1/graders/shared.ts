@@ -108,45 +108,43 @@ function normalizeTask1Output(
   }
 
   const hasNewEvidenceShape = Array.isArray(nested.supportingEvidence) || Array.isArray(nested.limitingEvidence) || "nextBandBlockers" in nested
+  if (hasNewEvidenceShape) return raw
+
   const rawLegacyEvidence = Array.isArray(nested.evidence) ? nested.evidence : []
-  const legacyEvidence = rawLegacyEvidence.flatMap((item) => {
+  const mappedLegacyEvidence = rawLegacyEvidence.map((item) => {
     const normalized = normalizeEvidence(item)
-    return normalized ? [{ raw: item, normalized }] : []
+    return normalized ? { raw: item, normalized } : null
   })
-  const supportingEvidence = Array.isArray(nested.supportingEvidence)
-    ? nested.supportingEvidence.flatMap((item) => {
-      const normalized = normalizeEvidence(item)
-      return normalized ? [normalized] : []
-    })
-    : legacyEvidence
-      .filter(({ raw }) => typeof raw === "object" && raw !== null && (raw as Record<string, unknown>).type !== "negative")
-      .map(({ normalized }) => normalized)
-  const limitingEvidence = Array.isArray(nested.limitingEvidence)
-    ? nested.limitingEvidence.flatMap((item) => {
-      const normalized = normalizeEvidence(item)
-      return normalized ? [normalized] : []
-    })
-    : legacyEvidence
-      .filter(({ raw }) => typeof raw === "object" && raw !== null && (raw as Record<string, unknown>).type === "negative")
-      .map(({ normalized }) => normalized)
+  if (mappedLegacyEvidence.some((item) => item === null)) return raw
 
-  const rawBlockers = Array.isArray(nested.nextBandBlockers) ? nested.nextBandBlockers : nested.blockers
-  const nextBandBlockers = Array.isArray(rawBlockers)
-    ? rawBlockers.flatMap((item) => typeof item === "string" && item.trim() ? [item.trim()] : [])
-    : []
+  const legacyEvidence = mappedLegacyEvidence as { raw: unknown; normalized: EvaluationEvidence }[]
 
-  const candidates = Array.isArray(nested.annotationCandidates)
-    ? nested.annotationCandidates.flatMap((item) => {
-      if (!item || typeof item !== "object") return []
-      const entry = item as Record<string, unknown>
-      const quote = typeof entry.quote === "string" ? entry.quote.trim() : ""
-      const label = String(entry.label || "overview").trim()
-      const rationale = String(entry.rationale || "Criterion-relevant evidence.").trim()
-      return quote && label && rationale ? [{ quote, label, rationale }] : []
+  const supportingEvidence = legacyEvidence
+    .filter((item) => typeof item.raw === "object" && item.raw !== null && (item.raw as Record<string, unknown>).type !== "negative")
+    .map((item) => item.normalized)
+  const limitingEvidence = legacyEvidence
+    .filter((item) => typeof item.raw === "object" && item.raw !== null && (item.raw as Record<string, unknown>).type === "negative")
+    .map((item) => item.normalized)
+
+  const rawBlockers = nested.blockers
+  if (rawBlockers !== undefined && (!Array.isArray(rawBlockers) || rawBlockers.some((item) => typeof item !== "string" || !item.trim()))) return raw
+  const nextBandBlockers = Array.isArray(rawBlockers) ? rawBlockers.map((item) => item.trim()) : []
+
+  const rawCandidates = nested.annotationCandidates
+  if (rawCandidates !== undefined && (!Array.isArray(rawCandidates) || rawCandidates.some((item) => {
+    if (!item || typeof item !== "object") return true
+    const entry = item as Record<string, unknown>
+    return typeof entry.quote !== "string" || !entry.quote.trim() || typeof entry.label !== "string" || !entry.label.trim() || typeof entry.rationale !== "string" || !entry.rationale.trim()
+  }))) return raw
+  const candidates = Array.isArray(rawCandidates)
+    ? rawCandidates.map((item) => {
+      const entry = item as Record<string, string>
+      return { quote: entry.quote.trim(), label: entry.label.trim(), rationale: entry.rationale.trim() }
     })
     : []
 
-  if (!hasNewEvidenceShape && rawLegacyEvidence.length === 0) return raw
+  if (rawLegacyEvidence.length === 0) return raw
+
 
   return {
     criterionId,

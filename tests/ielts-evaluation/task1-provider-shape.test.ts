@@ -70,12 +70,15 @@ describe("Task 1 provider output contract", () => {
     ).rejects.toThrow()
   })
 
-  it("rejects object-shaped next-band blockers instead of stringifying them", async () => {
+  it("rejects invalid anchor types in limitingEvidence instead of silently dropping or mapping them", async () => {
     const provider: AIProvider = {
       complete: async () => ({
         text: JSON.stringify({
           ...response,
-          nextBandBlockers: [{ reason: "More precise comparisons are needed." }],
+          limitingEvidence: [
+            { anchor: { type: "span", quote: "decline in biomass use" }, rationale: "Comparison needs more detail." },
+            { anchor: { type: "negative", quote: "some other quote" }, rationale: "Should fail." }
+          ],
         }),
         provider: "openai-compatible",
       }),
@@ -88,6 +91,70 @@ describe("Task 1 provider output contract", () => {
         rubric: IELTS_TASK1_ACADEMIC_RUBRIC,
       }),
     ).rejects.toThrow()
+  })
+
+  it("rejects empty nextBandBlockers below Band 9 instead of treating it as valid", async () => {
+    const provider: AIProvider = {
+      complete: async () => ({
+        text: JSON.stringify({
+          ...response,
+          nextBandBlockers: [],
+        }),
+        provider: "openai-compatible",
+      }),
+    }
+
+    await expect(
+      createTask1CriterionGrader(provider, "task-achievement")({
+        task: { testType: "academic", prompt: "Describe chart" },
+        essay,
+        rubric: IELTS_TASK1_ACADEMIC_RUBRIC,
+      }),
+    ).rejects.toThrow()
+  })
+
+  it("rejects object-shaped next-band blockers instead of stringifying or silently dropping them", async () => {
+    const provider: AIProvider = {
+      complete: async () => ({
+        text: JSON.stringify({
+          ...response,
+          nextBandBlockers: ["Valid string", { reason: "More precise comparisons are needed." }],
+        }),
+        provider: "openai-compatible",
+      }),
+    }
+
+    await expect(
+      createTask1CriterionGrader(provider, "task-achievement")({
+        task: { testType: "academic", prompt: "Describe chart" },
+        essay,
+        rubric: IELTS_TASK1_ACADEMIC_RUBRIC,
+      }),
+    ).rejects.toThrow()
+  })
+
+  it("accepts paragraph and global evidence without requiring quote lookup", async () => {
+    const provider: AIProvider = {
+      complete: async () => ({
+        text: JSON.stringify({
+          ...response,
+          supportingEvidence: [{ anchor: { type: "paragraph", paragraphIndex: 0 }, rationale: "Summarizes paragraph development." }],
+          limitingEvidence: [{ anchor: { type: "global" }, rationale: "Overall comparison remains limited." }],
+        }),
+        provider: "openai-compatible",
+      }),
+    }
+
+    await expect(
+      createTask1CriterionGrader(provider, "task-achievement")({
+        task: { testType: "academic", prompt: "Describe chart" },
+        essay,
+        rubric: IELTS_TASK1_ACADEMIC_RUBRIC,
+      }),
+    ).resolves.toMatchObject({
+      supportingEvidence: [{ anchor: { type: "paragraph", paragraphIndex: 0 } }],
+      limitingEvidence: [{ anchor: { type: "global" } }],
+    })
   })
 
   it("accepts Band 9 supporting evidence without fabricating a limitation or blocker", async () => {
