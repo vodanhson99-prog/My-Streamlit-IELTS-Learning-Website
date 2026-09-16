@@ -40,7 +40,11 @@ export interface Task2Rubric {
 
 export type EvidenceAnchor =
   | { readonly type: "span"; readonly quote: string }
-  | { readonly type: "paragraph"; readonly paragraphIndex: number }
+  | {
+      readonly type: "paragraph"
+      /** Zero-based index ignoring pure whitespace paragraphs */
+      readonly paragraphIndex: number
+    }
   | { readonly type: "global" }
 
 export interface EvaluationEvidence {
@@ -52,6 +56,7 @@ export interface AnnotationCandidate {
   readonly quote: string
   readonly label: string
   readonly rationale: string
+  /** Zero-based index ignoring pure whitespace paragraphs */
   readonly paragraphIndex?: number
   readonly surroundingContext?: string
 }

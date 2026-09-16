@@ -1,4 +1,5 @@
 import type { AnnotationCandidate, ResolvedAnnotation } from "../contracts"
+import { getParagraphOffsets } from "../validation/evidence"
 
 function findOccurrences(text: string, search: string): number[] {
   const indices: number[] = []
@@ -17,22 +18,13 @@ export function resolveAnnotations(
   essay: string,
   criterionId: string,
 ): readonly ResolvedAnnotation[] {
-  const paragraphs = essay.split(/\n+/)
-  const paragraphOffsets: { start: number; end: number }[] = []
-  let currentPos = 0
-
-  for (const p of paragraphs) {
-    const start = essay.indexOf(p, currentPos)
-    const end = start + p.length
-    paragraphOffsets.push({ start, end })
-    currentPos = end
-  }
+  const paragraphOffsets = getParagraphOffsets(essay)
 
   return candidates.map((candidate, idx) => {
-    const id = `${criterionId}-anno-${idx}-${Date.now().toString(36)}`
-    const quote = candidate.quote.trim()
+    const id = `${criterionId}-anno-${idx}`
+    const quote = candidate.quote
 
-    if (!quote) {
+    if (!quote.trim()) {
       return {
         id,
         criterionId,
@@ -72,7 +64,11 @@ export function resolveAnnotations(
     }
 
     // Multiple occurrences: disambiguate using paragraphIndex or surroundingContext
-    if (candidate.paragraphIndex !== undefined && candidate.paragraphIndex < paragraphOffsets.length) {
+    if (
+      candidate.paragraphIndex !== undefined &&
+      candidate.paragraphIndex >= 0 &&
+      candidate.paragraphIndex < paragraphOffsets.length
+    ) {
       const targetP = paragraphOffsets[candidate.paragraphIndex]
       const inParagraph = occurrences.filter((occ) => occ >= targetP.start && occ + quote.length <= targetP.end)
       if (inParagraph.length === 1) {
@@ -92,7 +88,7 @@ export function resolveAnnotations(
     }
 
     if (candidate.surroundingContext) {
-      const ctx = candidate.surroundingContext.trim()
+      const ctx = candidate.surroundingContext
       const ctxOccurrences = findOccurrences(essay, ctx)
       if (ctxOccurrences.length === 1) {
         const ctxStart = ctxOccurrences[0]
