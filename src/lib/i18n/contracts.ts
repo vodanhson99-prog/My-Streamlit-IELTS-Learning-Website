@@ -1,5 +1,3 @@
-import type { AppLocale } from "@/lib/settings/contracts"
-
 export interface I18nDictionary {
   // Settings page
   "settings.title": string
@@ -25,6 +23,8 @@ export interface I18nDictionary {
 
   // Tutor Chrome
   "tutor.title": string
+  "tutor.subtitle": string
+  "tutor.send": string
   "tutor.thinking": string
   "tutor.tryAgain": string
   "tutor.close": string

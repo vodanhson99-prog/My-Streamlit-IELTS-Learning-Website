@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest"
 import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -162,6 +163,7 @@ describe("Tutor & Settings Integration", () => {
       )
 
       expect(html).toContain("Trợ lý AI Viết")
+      expect(html).toContain("Trợ lý sư phạm hỗ trợ học tập")
       expect(html).toContain("Hỏi bất cứ điều gì về bài viết của bạn")
       expect(html).toContain("Hỏi cách cải thiện band điểm, trau chuốt từ vựng hay giải thích các lỗi ngữ pháp.")
       expect(html).toContain('placeholder="Hỏi trợ lý về nhận xét hoặc ngữ pháp..."')

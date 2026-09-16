@@ -28,6 +28,8 @@ export const enMessages: I18nDictionary = {
 
   // Tutor Chrome
   "tutor.title": "AI Writing Tutor",
+  "tutor.subtitle": "Read-only pedagogical assistant",
+  "tutor.send": "Send",
   "tutor.thinking": "Tutor is thinking...",
   "tutor.tryAgain": "Try again",
   "tutor.close": "Close tutor panel",
@@ -63,6 +65,8 @@ export const viMessages: I18nDictionary = {
 
   // Tutor Chrome
   "tutor.title": "Trợ lý AI Viết",
+  "tutor.subtitle": "Trợ lý sư phạm hỗ trợ học tập",
+  "tutor.send": "Gửi",
   "tutor.thinking": "Trợ lý đang suy nghĩ...",
   "tutor.tryAgain": "Thử lại",
   "tutor.close": "Đóng trợ lý",

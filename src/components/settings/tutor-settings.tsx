@@ -68,16 +68,17 @@ export function TutorSettings({
             type="button"
             role="switch"
             aria-checked={autoRetry}
+            aria-label={t("settings.tutor.retryLabel")}
             onClick={handleToggleRetry}
             className={cn(
-              "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+              "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
               autoRetry ? "bg-foreground" : "bg-muted"
             )}
           >
             <span
               className={cn(
-                "pointer-events-none inline-block size-4 rounded-full bg-background shadow-sm ring-0 transition duration-200 ease-in-out",
-                autoRetry ? "translate-x-4" : "translate-x-0"
+                "pointer-events-none inline-block size-5 rounded-full bg-background shadow-sm ring-0 transition duration-200 ease-in-out",
+                autoRetry ? "translate-x-5" : "translate-x-0"
               )}
             />
           </button>
@@ -110,16 +111,17 @@ export function TutorSettings({
             type="button"
             role="switch"
             aria-checked={motionReduced}
+            aria-label={t("settings.motion.reduceLabel")}
             onClick={handleToggleMotion}
             className={cn(
-              "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+              "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
               motionReduced ? "bg-foreground" : "bg-muted"
             )}
           >
             <span
               className={cn(
-                "pointer-events-none inline-block size-4 rounded-full bg-background shadow-sm ring-0 transition duration-200 ease-in-out",
-                motionReduced ? "translate-x-4" : "translate-x-0"
+                "pointer-events-none inline-block size-5 rounded-full bg-background shadow-sm ring-0 transition duration-200 ease-in-out",
+                motionReduced ? "translate-x-5" : "translate-x-0"
               )}
             />
           </button>

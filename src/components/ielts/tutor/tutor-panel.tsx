@@ -192,18 +192,18 @@ export function TutorPanel({
           </div>
           <div>
             <h3 className="text-xs font-semibold text-foreground">{t("tutor.title")}</h3>
-            <span className="text-[10px] font-mono text-muted-foreground">Read-only pedagogical assistant</span>
+            <span className="text-[10px] font-mono text-muted-foreground">{t("tutor.subtitle")}</span>
           </div>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className={`size-7 rounded-[2px] border border-border flex items-center justify-center hover:bg-muted text-muted-foreground cursor-pointer ${
+          className={`size-10 rounded-[2px] border border-border flex items-center justify-center hover:bg-muted text-muted-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
             settings.reducedMotion ? "" : "transition-colors"
           }`}
           aria-label={t("tutor.close")}
         >
-          <X className="size-3.5" />
+          <X className="size-4" />
         </button>
       </div>
 
@@ -223,7 +223,6 @@ export function TutorPanel({
               key={idx}
               message={m}
               onSelectFollowUp={handleSelectFollowUp}
-              suggestedFollowUpsLabel={t("tutor.suggestedFollowUps")}
             />
           ))
         )}
@@ -255,9 +254,9 @@ export function TutorPanel({
                 type="button"
                 onClick={handleRetry}
                 disabled={isLoading}
-                className="inline-flex items-center gap-1 text-[11px] font-mono text-foreground hover:underline shrink-0 font-medium px-1.5 py-0.5 border border-border rounded-[2px] bg-background hover:bg-muted"
+                className="inline-flex min-h-10 items-center gap-1 text-[11px] font-mono text-foreground hover:underline shrink-0 font-medium px-2.5 py-1.5 border border-border rounded-[2px] bg-background hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
               >
-                <RefreshCw className="size-2.5" />
+                <RefreshCw className="size-3" />
                 <span>{t("tutor.tryAgain")}</span>
               </button>
             )}
@@ -272,6 +271,7 @@ export function TutorPanel({
         disabled={isLoading}
         placeholder={initialPrompt || t("tutor.askPlaceholder")}
         initialValue={composerDraft}
+        sendLabel={t("tutor.send")}
       />
     </aside>
   )

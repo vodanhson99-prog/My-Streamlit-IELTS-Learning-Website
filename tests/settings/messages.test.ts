@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
-import { enMessages, viMessages, getMessages, t, type MessageKey } from "@/lib/i18n/messages"
-import type { I18nDictionary } from "@/lib/i18n/contracts"
+import { getMessages, t, enMessages, viMessages } from "@/lib/i18n/messages"
+import type { MessageKey } from "@/lib/i18n/contracts"
 
 describe("i18n messages and dictionary", () => {
   it("en and vi have identical keys (100% key parity)", () => {

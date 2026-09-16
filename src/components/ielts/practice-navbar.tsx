@@ -179,7 +179,7 @@ export function PracticeNavbar() {
                 href={href}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-[3px] transition-all duration-200 ease-out active:scale-90",
+                  "flex flex-col items-center justify-center gap-1 min-h-10 min-w-10 py-1 px-3 rounded-[3px] transition-all duration-200 ease-out active:scale-90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                   isActive ? "text-foreground font-semibold" : "text-muted-foreground hover:text-foreground"
                 )}
               >

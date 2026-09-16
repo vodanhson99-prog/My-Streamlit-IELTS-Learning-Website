@@ -80,7 +80,7 @@ export function DataSettings({
           </div>
 
           <AlertDialog>
-            <AlertDialogTrigger render={<Button variant="destructive" size="sm" />}>
+            <AlertDialogTrigger render={<Button variant="destructive" size="sm" className="min-h-10 px-3" />}>
               {t("settings.data.clearTutor")}
             </AlertDialogTrigger>
             <AlertDialogContent size="sm">
@@ -96,9 +96,9 @@ export function DataSettings({
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel size="sm">Cancel</AlertDialogCancel>
+                <AlertDialogCancel size="sm" className="min-h-10 px-3">Cancel</AlertDialogCancel>
                 <AlertDialogAction
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90 min-h-10 px-3"
                   size="sm"
                   onClick={handleClearTutor}
                 >
@@ -127,7 +127,7 @@ export function DataSettings({
           </div>
 
           <AlertDialog>
-            <AlertDialogTrigger render={<Button variant="destructive" size="sm" />}>
+            <AlertDialogTrigger render={<Button variant="destructive" size="sm" className="min-h-10 px-3" />}>
               {t("settings.data.clearAll")}
             </AlertDialogTrigger>
             <AlertDialogContent size="sm">
@@ -143,9 +143,9 @@ export function DataSettings({
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel size="sm">Cancel</AlertDialogCancel>
+                <AlertDialogCancel size="sm" className="min-h-10 px-3">Cancel</AlertDialogCancel>
                 <AlertDialogAction
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90 min-h-10 px-3"
                   size="sm"
                   onClick={handleClearAll}
                 >

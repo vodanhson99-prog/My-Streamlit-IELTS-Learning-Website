@@ -4,10 +4,9 @@ import { Bot, User, Bookmark, ArrowRight } from "lucide-react"
 interface TutorMessageItemProps {
   message: TutorMessage
   onSelectFollowUp?: (text: string) => void
-  suggestedFollowUpsLabel?: string
 }
 
-export function TutorMessageItem({ message, onSelectFollowUp, suggestedFollowUpsLabel = "References" }: TutorMessageItemProps) {
+export function TutorMessageItem({ message, onSelectFollowUp }: TutorMessageItemProps) {
   const isUser = message.role === "user"
 
   return (
@@ -46,7 +45,7 @@ export function TutorMessageItem({ message, onSelectFollowUp, suggestedFollowUps
                 key={idx}
                 type="button"
                 onClick={() => onSelectFollowUp?.(followUp)}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded-[2px] bg-muted/60 hover:bg-muted text-[11px] text-foreground border border-border transition-colors text-left"
+                className="inline-flex min-h-10 items-center gap-1.5 px-3 py-2 rounded-[2px] bg-muted/60 hover:bg-muted text-[11px] text-foreground border border-border transition-colors text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
               >
                 <span>{followUp}</span>
                 <ArrowRight className="size-2.5 text-muted-foreground" />

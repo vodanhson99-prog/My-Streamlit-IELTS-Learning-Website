@@ -55,7 +55,7 @@ export function LanguageSetting({ locale: propLocale, onSelectLocale }: Language
               data-active={isActive ? "true" : "false"}
               onClick={() => handleSelect(code)}
               className={cn(
-                "group relative flex items-center justify-between p-3 rounded-[3px] border text-left transition-all duration-150 cursor-pointer",
+                "group relative flex min-h-10 items-center justify-between p-3 rounded-[3px] border text-left transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                 isActive
                   ? "border-foreground/40 bg-muted/50 font-medium text-foreground ring-1 ring-border/50"
                   : "border-border/60 bg-background/50 hover:bg-muted/30 text-muted-foreground hover:text-foreground"

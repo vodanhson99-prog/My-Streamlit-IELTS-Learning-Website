@@ -47,14 +47,14 @@ export function TutorComposer({
         placeholder={placeholder}
         disabled={disabled}
         aria-label="Ask IELTS tutor"
-        className="flex-1 h-8 px-3 rounded-[2px] border border-border bg-background text-xs font-serif placeholder:text-muted-foreground focus:outline-hidden focus:border-foreground disabled:opacity-50"
+        className="flex-1 min-h-10 h-10 px-3 rounded-[2px] border border-border bg-background text-xs font-serif placeholder:text-muted-foreground focus:outline-hidden focus:border-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
       />
       <Button
         type="submit"
         size="sm"
         disabled={disabled || !input.trim()}
         aria-label="Send message to tutor"
-        className="h-8 px-3 text-xs font-mono rounded-[2px]"
+        className="min-h-10 h-10 px-3 text-xs font-mono rounded-[2px] focus-visible:ring-1 focus-visible:ring-ring"
       >
         <Send className="size-3 mr-1" /> {sendLabel}
       </Button>
