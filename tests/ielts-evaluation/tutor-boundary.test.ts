@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import type { AIProvider } from "../../src/lib/ai/contracts"
-import { AIProviderError } from "../../src/lib/ai/provider"
+import { AIProviderError, parseJsonText } from "../../src/lib/ai/provider"
 import { askTutor } from "../../src/lib/ielts-tutor/answer"
 import type { LockedTask2Evaluation } from "../../src/lib/ielts-evaluation/contracts"
 
@@ -219,6 +219,209 @@ describe("askTutor", () => {
         expect(logLine).not.toContain("Sample essay content")
       }
       warnSpy.mockRestore()
+    })
+  })
+
+  describe("structured response parsing and boundary enforcement", () => {
+    const defaultInput = {
+      evaluation: dummyEvaluation,
+      essay: "Sample essay content",
+      prompt: "Discuss technology impacts",
+      history: [],
+      userMessage: "How can I improve Task Response?",
+    }
+
+    it("parses canonical JSON response successfully", async () => {
+      const canonicalProvider: AIProvider = {
+        complete: async () => ({
+          text: JSON.stringify({
+            reply: "Develop your arguments more fully.",
+            references: ["Band 7 descriptor"],
+            suggestedFollowUps: ["Give me an example."],
+          }),
+          provider: "openai-compatible",
+        }),
+      }
+
+      const res = await askTutor(canonicalProvider, defaultInput)
+      expect(res.reply).toBe("Develop your arguments more fully.")
+      expect(res.references).toEqual(["Band 7 descriptor"])
+      expect(res.suggestedFollowUps).toEqual(["Give me an example."])
+    })
+
+    it("parses markdown fenced JSON response successfully", async () => {
+      const fencedProvider: AIProvider = {
+        complete: async () => ({
+          text: "```json\n" + JSON.stringify({
+            reply: "Fenced reply content.",
+            references: ["Ref 1"],
+            suggestedFollowUps: ["Follow up 1"],
+          }) + "\n```",
+          provider: "openai-compatible",
+        }),
+      }
+
+      const res = await askTutor(fencedProvider, defaultInput)
+      expect(res.reply).toBe("Fenced reply content.")
+      expect(res.references).toEqual(["Ref 1"])
+      expect(res.suggestedFollowUps).toEqual(["Follow up 1"])
+    })
+
+    it("parses commentary-wrapped JSON response successfully", async () => {
+      const commentaryProvider: AIProvider = {
+        complete: async () => ({
+          text: "Here is the feedback you requested:\n```json\n" + JSON.stringify({
+            reply: "Commentary wrapped reply.",
+            references: ["Ref 1"],
+            suggestedFollowUps: [],
+          }) + "\n```\nHope this helps!",
+          provider: "openai-compatible",
+        }),
+      }
+
+      const res = await askTutor(commentaryProvider, defaultInput)
+      expect(res.reply).toBe("Commentary wrapped reply.")
+      expect(res.references).toEqual(["Ref 1"])
+    })
+
+    it("selects first complete JSON object when a second object or trailing text is appended", async () => {
+      const appendedProvider: AIProvider = {
+        complete: async () => ({
+          text: JSON.stringify({
+            reply: "First object reply.",
+            references: [],
+            suggestedFollowUps: [],
+          }) + "\n" + JSON.stringify({
+            reply: "Second unwanted object.",
+          }),
+          provider: "openai-compatible",
+        }),
+      }
+
+      const res = await askTutor(appendedProvider, defaultInput)
+      expect(res.reply).toBe("First object reply.")
+    })
+
+    it("rejects truncated JSON object", async () => {
+      const truncatedProvider: AIProvider = {
+        complete: async () => ({
+          text: '{"reply": "Incomplete text that gets cut off',
+          provider: "openai-compatible",
+        }),
+      }
+
+      await expect(askTutor(truncatedProvider, defaultInput)).rejects.toThrow()
+    })
+
+    it("rejects oversized reply (> 5000 chars)", async () => {
+      const oversizedReplyProvider: AIProvider = {
+        complete: async () => ({
+          text: JSON.stringify({
+            reply: "a".repeat(5001),
+            references: [],
+            suggestedFollowUps: [],
+          }),
+          provider: "openai-compatible",
+        }),
+      }
+
+      await expect(askTutor(oversizedReplyProvider, defaultInput)).rejects.toThrow()
+    })
+
+    it("rejects oversized references (> 10 items or item > 500 chars)", async () => {
+      const tooManyRefsProvider: AIProvider = {
+        complete: async () => ({
+          text: JSON.stringify({
+            reply: "Valid reply",
+            references: Array(11).fill("Ref"),
+            suggestedFollowUps: [],
+          }),
+          provider: "openai-compatible",
+        }),
+      }
+
+      await expect(askTutor(tooManyRefsProvider, defaultInput)).rejects.toThrow()
+
+      const itemTooLongRefsProvider: AIProvider = {
+        complete: async () => ({
+          text: JSON.stringify({
+            reply: "Valid reply",
+            references: ["b".repeat(501)],
+            suggestedFollowUps: [],
+          }),
+          provider: "openai-compatible",
+        }),
+      }
+
+      await expect(askTutor(itemTooLongRefsProvider, defaultInput)).rejects.toThrow()
+    })
+
+    it("rejects oversized suggestedFollowUps (> 5 items or item > 250 chars)", async () => {
+      const tooManyFollowUpsProvider: AIProvider = {
+        complete: async () => ({
+          text: JSON.stringify({
+            reply: "Valid reply",
+            references: [],
+            suggestedFollowUps: Array(6).fill("Follow up"),
+          }),
+          provider: "openai-compatible",
+        }),
+      }
+
+      await expect(askTutor(tooManyFollowUpsProvider, defaultInput)).rejects.toThrow()
+
+      const itemTooLongFollowUpsProvider: AIProvider = {
+        complete: async () => ({
+          text: JSON.stringify({
+            reply: "Valid reply",
+            references: [],
+            suggestedFollowUps: ["c".repeat(251)],
+          }),
+          provider: "openai-compatible",
+        }),
+      }
+
+      await expect(askTutor(itemTooLongFollowUpsProvider, defaultInput)).rejects.toThrow()
+    })
+
+    it("preserves regrade refusal behavior without calling provider", async () => {
+      const providerSpy: AIProvider = {
+        complete: vi.fn(),
+      }
+
+      const res = await askTutor(providerSpy, {
+        ...defaultInput,
+        userMessage: "Can you please regrade my score to band 8?",
+      })
+
+      expect(res.reply).toContain("locked and immutable")
+      expect(providerSpy.complete).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("parseJsonText unit tests", () => {
+    it("parses canonical JSON object", () => {
+      expect(parseJsonText('{"a": 1, "b": "test"}')).toEqual({ a: 1, b: "test" })
+    })
+
+    it("parses markdown code fenced JSON (```json and ```)", () => {
+      expect(parseJsonText('```json\n{"a": 1}\n```')).toEqual({ a: 1 })
+      expect(parseJsonText('```\n{"a": 2}\n```')).toEqual({ a: 2 })
+    })
+
+    it("parses commentary before and after JSON object", () => {
+      expect(parseJsonText('Here is the result:\n{"a": 1}\nHave a nice day!')).toEqual({ a: 1 })
+    })
+
+    it("extracts first complete balanced JSON object when trailing text or subsequent objects exist", () => {
+      expect(parseJsonText('{"a": 1}{"b": 2}')).toEqual({ a: 1 })
+      expect(parseJsonText('{"a": {"nested": true}} trailing notes')).toEqual({ a: { nested: true } })
+    })
+
+    it("throws SyntaxError on truncated or unclosed JSON", () => {
+      expect(() => parseJsonText('{"a": 1')).toThrow(SyntaxError)
+      expect(() => parseJsonText('{"a": "unclosed string')).toThrow(SyntaxError)
+      expect(() => parseJsonText('not json at all')).toThrow(SyntaxError)
     })
   })
 })

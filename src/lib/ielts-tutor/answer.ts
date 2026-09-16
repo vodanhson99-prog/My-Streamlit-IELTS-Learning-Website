@@ -9,9 +9,9 @@ export interface AskTutorOptions {
 }
 
 const tutorResponseSchema = z.object({
-  reply: z.string().trim().min(1),
-  references: z.array(z.string().trim().min(1)).default([]),
-  suggestedFollowUps: z.array(z.string().trim().min(1)).default([]),
+  reply: z.string().trim().min(1).max(5000),
+  references: z.array(z.string().trim().min(1).max(500)).max(10).default([]),
+  suggestedFollowUps: z.array(z.string().trim().min(1).max(250)).max(5).default([]),
 }).strict()
 
 export async function askTutor(

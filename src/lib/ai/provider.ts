@@ -34,7 +34,7 @@ const chatCompletionsResponseSchema = z.object({
   choices: z.array(z.object({ message: z.object({ content: z.string().min(1) }) })).min(1),
 })
 
-function parseJsonText(text: string): unknown {
+export function parseJsonText(text: string): unknown {
   const trimmed = text.trim()
   const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)
   const candidate = fenced?.[1] ?? trimmed
