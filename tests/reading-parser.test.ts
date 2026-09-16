@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { extractReadingPassage, parseScopedQuestions, parsePageSections } from "../src/lib/iot-parser"
+import type { ReadingPassageBlock } from "../src/lib/ielts"
 
 describe("Reading parser enhancements", () => {
   const sampleReadingHtml = `
@@ -29,6 +30,29 @@ describe("Reading parser enhancements", () => {
       </div>
     </section>
   `
+
+  it("preserves structured heading, paragraph, and image blocks", () => {
+    const answers = new Map<number, string | number | (string | number)[]>([[1, "A"]])
+    const sections = parsePageSections(`
+      <section class="test-panel">
+        <h2 class="test-panel__title">Passage 1</h2>
+        <div class="reading-passage">
+          <h3>Sleepy Students Perform Worse</h3>
+          <p>First paragraph.</p>
+          <img src="/sites/default/files/passage.png" alt="Sleep study chart">
+        </div>
+        <div class="test-panel__item">
+          <h4 class="test-panel__question-title">Questions 1-1</h4>
+          <p><b class="iot-question-number">1.</b><select data-num="1"><option value="A">A</option></select> Prompt</p>
+        </div>
+      </section>
+    `, "reading", answers)
+
+    const blocks: ReadingPassageBlock[] = sections[0].passageBlocks ?? []
+    expect(blocks).toContainEqual({ type: "heading", text: "Sleepy Students Perform Worse" })
+    expect(blocks).toContainEqual({ type: "paragraph", text: "First paragraph." })
+    expect(blocks).toContainEqual({ type: "image", src: "/sites/default/files/passage.png", alt: "Sleep study chart" })
+  })
 
   it("extracts clean reading passage without questions", () => {
     const passage = extractReadingPassage(sampleReadingHtml)
@@ -68,6 +92,11 @@ describe("Reading parser enhancements", () => {
     expect(sections.length).toBe(1)
     expect(sections[0].title).toBe("Passage 1")
     expect(sections[0].passageText).toBe("This is the actual reading passage about M-Pesa. It has 262 words and multiple paragraphs.")
+    const blocks: ReadingPassageBlock[] = sections[0].passageBlocks ?? []
+    expect(blocks).toEqual([
+      { type: "paragraph", text: "This is the actual reading passage about M-Pesa." },
+      { type: "paragraph", text: "It has 262 words and multiple paragraphs." },
+    ])
     expect(sections[0].questions.length).toBe(3)
   })
 

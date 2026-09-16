@@ -92,11 +92,21 @@ export interface UniversalQuestion {
   example?: PracticeExample
 }
 
+export type ReadingPassageBlock = {
+  type: "heading" | "paragraph" | "list" | "table" | "image"
+  text?: string
+  items?: string[]
+  rows?: string[][]
+  src?: string
+  alt?: string
+}
+
 export interface PracticeSection {
   id: string
   title: string
   instructions?: string
   passageText?: string
+  passageBlocks?: ReadingPassageBlock[]
   audioUrl?: string
   audioTimestamp?: number
   questions: UniversalQuestion[]
