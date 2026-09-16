@@ -199,10 +199,8 @@ describe("askTutor", () => {
 
     it("does not leak essay content, student questions, or API keys in structured diagnostics or logs", async () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
-      let attempts = 0
       const failingProvider: AIProvider = {
         complete: vi.fn(async () => {
-          attempts++
           throw new AIProviderError("upstream", "Gateway failure", true, 502)
         }),
       }

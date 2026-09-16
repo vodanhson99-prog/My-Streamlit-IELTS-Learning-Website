@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect } from "vitest"
 import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { TutorPanel } from "@/components/ielts/tutor/tutor-panel"
@@ -95,7 +95,7 @@ describe("Tutor UI components", () => {
       let lastFailedText: string | null = null
       let composerDraft: string = ""
 
-      const handleSendMessage = async (userText: string, fetchFn: () => Promise<{ ok: boolean; json: () => Promise<any> }>) => {
+      const handleSendMessage = async (userText: string, fetchFn: () => Promise<{ ok: boolean; json: () => Promise<unknown> }>) => {
         const trimmed = userText.trim()
         if (!trimmed || isLoading) return
         isLoading = true
@@ -105,7 +105,7 @@ describe("Tutor UI components", () => {
 
         try {
           const res = await fetchFn()
-          const data = await res.json()
+          const data = (await res.json()) as { reply?: string; references?: string[]; suggestedFollowUps?: string[] }
           if (!res.ok || !data.reply) {
             errorMessage = "Tutor is currently unavailable. Please try again."
             lastFailedText = trimmed

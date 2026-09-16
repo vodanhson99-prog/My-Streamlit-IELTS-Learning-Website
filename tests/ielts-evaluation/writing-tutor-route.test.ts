@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest"
 import { POST as tutorPost } from "../../src/app/api/writing-tutor/route"
-import type { TutorErrorKind, TutorErrorResponse } from "../../src/lib/ielts-tutor/contracts"
+import type { TutorErrorResponse } from "../../src/lib/ielts-tutor/contracts"
 
 const dummyEvaluation = {
   status: "completed",

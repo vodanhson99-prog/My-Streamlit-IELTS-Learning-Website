@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -20,12 +20,12 @@ export function TutorComposer({
   inputRef,
 }: TutorComposerProps) {
   const [input, setInput] = useState(initialValue)
+  const [prevInitialValue, setPrevInitialValue] = useState(initialValue)
 
-  useEffect(() => {
-    if (initialValue) {
-      setInput(initialValue)
-    }
-  }, [initialValue])
+  if (initialValue !== prevInitialValue) {
+    setPrevInitialValue(initialValue)
+    setInput(initialValue)
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
