@@ -4,9 +4,10 @@ import { Bot, User, Bookmark, ArrowRight } from "lucide-react"
 interface TutorMessageItemProps {
   message: TutorMessage
   onSelectFollowUp?: (text: string) => void
+  suggestedFollowUpsLabel?: string
 }
 
-export function TutorMessageItem({ message, onSelectFollowUp }: TutorMessageItemProps) {
+export function TutorMessageItem({ message, onSelectFollowUp, suggestedFollowUpsLabel = "References" }: TutorMessageItemProps) {
   const isUser = message.role === "user"
 
   return (

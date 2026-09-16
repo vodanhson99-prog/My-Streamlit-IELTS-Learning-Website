@@ -33,6 +33,9 @@ function subscribe(callback: () => void) {
 }
 
 function getServerSnapshot(): UserSettings {
+  if (typeof window !== "undefined") {
+    return getStoredSettings()
+  }
   return DEFAULT_USER_SETTINGS
 }
 

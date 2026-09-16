@@ -10,6 +10,7 @@ interface TutorComposerProps {
   placeholder?: string
   initialValue?: string
   inputRef?: React.RefObject<HTMLInputElement | null>
+  sendLabel?: string
 }
 
 export function TutorComposer({
@@ -18,6 +19,7 @@ export function TutorComposer({
   placeholder = "Ask tutor about feedback or grammar...",
   initialValue = "",
   inputRef,
+  sendLabel = "Send",
 }: TutorComposerProps) {
   const [input, setInput] = useState(initialValue)
   const [prevInitialValue, setPrevInitialValue] = useState(initialValue)
@@ -54,7 +56,7 @@ export function TutorComposer({
         aria-label="Send message to tutor"
         className="h-8 px-3 text-xs font-mono rounded-[2px]"
       >
-        <Send className="size-3 mr-1" /> Send
+        <Send className="size-3 mr-1" /> {sendLabel}
       </Button>
     </form>
   )

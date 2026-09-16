@@ -101,7 +101,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { evaluation, essay, prompt, history, userMessage, selectedAnnotation } =
+    const { evaluation, essay, prompt, history, userMessage, selectedAnnotation, autoRetry } =
       (body && typeof body === "object" ? body : {}) as Record<string, unknown>
 
     if (!evaluation || typeof evaluation !== "object" || !(evaluation as { locked?: boolean }).locked) {
@@ -156,7 +156,9 @@ export async function POST(request: Request) {
       selectedAnnotation: selectedAnnotation as TutorRequestInput["selectedAnnotation"],
     }
 
-    const response = await askTutor(provider, tutorInput)
+    const response = await askTutor(provider, tutorInput, {
+      maxRetries: autoRetry === false ? 0 : 1,
+    })
     return NextResponse.json({ ...response, requestId })
   } catch (error: unknown) {
     const classified = classifyError(error)

@@ -6,6 +6,7 @@ import type { TutorRequestInput, TutorResponse } from "./contracts"
 
 export interface AskTutorOptions {
   readonly retryDelayMs?: number
+  readonly maxRetries?: number
 }
 
 const tutorResponseSchema = z.object({
@@ -82,6 +83,7 @@ Student question: ${input.userMessage}`
   }
 
   const retryDelayMs = options.retryDelayMs ?? 75
+  const maxRetries = options.maxRetries ?? 1
   const startTime = Date.now()
 
   try {
@@ -95,7 +97,7 @@ Student question: ${input.userMessage}`
       `[writing-tutor][attempt=1] failureKind=${failureKind} msg="${safeMsg}" elapsedMs=${elapsedMs}`,
     )
 
-    if (!isTransientAIError(firstErr)) {
+    if (maxRetries === 0 || !isTransientAIError(firstErr)) {
       throw firstErr
     }
 
