@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { extractReadingPassage, parseScopedQuestions, parsePageSections } from "../src/lib/iot-parser"
+import { extractReadingPassage, extractReadingPassageBlocks, parseScopedQuestions, parsePageSections } from "../src/lib/iot-parser"
 import type { ReadingPassageBlock } from "../src/lib/ielts"
 
 describe("Reading parser enhancements", () => {
@@ -186,5 +186,48 @@ describe("Reading parser enhancements", () => {
     expect(sections[0].questions[0].prompt).toBe("Prompt for question 1")
     expect(sections[1].questions[0].number).toBe(14)
     expect(sections[2].questions.at(-1)?.number).toBe(40)
+  })
+
+  it("extracts ordered passage blocks including headings, paragraphs, and images", () => {
+    const blocks = extractReadingPassageBlocks(`
+      <div class="reading-passage">
+        <h3>Sleepy Students Perform Worse</h3>
+        <p><strong>A.</strong> First paragraph.</p>
+        <p><strong>B.</strong> Second paragraph.</p>
+        <img src="/sites/default/files/passage.png" alt="Sleep study chart">
+      </div>
+    `)
+    expect(blocks.map((block) => block.type)).toEqual(["heading", "paragraph", "paragraph", "image"])
+    expect(blocks[0]).toMatchObject({ type: "heading", text: "Sleepy Students Perform Worse" })
+    expect(blocks[1]).toMatchObject({ type: "paragraph", text: "A. First paragraph." })
+    expect(blocks[2]).toMatchObject({ type: "paragraph", text: "B. Second paragraph." })
+    expect(blocks[3]).toMatchObject({ type: "image", src: "/sites/default/files/passage.png", alt: "Sleep study chart" })
+  })
+
+  it("handles nested markup, skips scripts/styles and empty blocks, and preserves lists/tables", () => {
+    const blocks = extractReadingPassageBlocks(`
+      <div class="field field--name-field-passage">
+        <script>console.log("bad")</script>
+        <style>.bad { color: red; }</style>
+        <div class="nested-wrapper">
+          <p>Paragraph inside <span>nested wrapper</span>.</p>
+          <p>   </p>
+          <ul>
+            <li>Bullet 1</li>
+            <li>Bullet 2</li>
+          </ul>
+          <table>
+            <tr><th>Header 1</th><th>Header 2</th></tr>
+            <tr><td>Cell 1</td><td>Cell 2</td></tr>
+          </table>
+        </div>
+      </div>
+    `)
+
+    expect(blocks).toEqual([
+      { type: "paragraph", text: "Paragraph inside nested wrapper." },
+      { type: "list", items: ["Bullet 1", "Bullet 2"] },
+      { type: "table", rows: [["Header 1", "Header 2"], ["Cell 1", "Cell 2"]] },
+    ])
   })
 })

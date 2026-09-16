@@ -6,6 +6,7 @@ import {
   type PracticeExample,
   type PracticeGrid,
   type QuestionAnswer,
+  type ReadingPassageBlock,
 } from "@/lib/ielts"
 
 const IOT_BASE_URL = "https://ieltsonlinetests.com"
@@ -146,6 +147,7 @@ function cleanText(raw: string): string {
       .replace(/<[^>]+>/g, " ")
   )
     .replace(/\s+/g, " ")
+    .replace(/\s+([.,;:!?])/g, "$1")
     .trim()
 }
 
@@ -178,9 +180,142 @@ function normalizeQuestionPrompt(raw: string, number: number, hasInput: boolean)
   return text
 }
 
-const READING_PASSAGE_RE = /<(?:div|section)[^>]*class=["'][^"']*(?:field--name-field-passage|reading-passage)(?:\s[^"']*)?["'][^>]*>([\s\S]*?)<\/(?:div|section)>/gi
+const READING_PASSAGE_RE = /<(?:div|section)[^>]*class=["'][^"']*(?:(?<![a-zA-Z0-9_-])field--name-field-passage(?![a-zA-Z0-9_-])|(?<![a-zA-Z0-9_-])reading-passage(?![a-zA-Z0-9_-]))[^"']*["'][^>]*>([\s\S]*?)<\/(?:div|section)>/gi
+
+function extractPassageContainerHtml(html: string): string[] {
+  const containers: string[] = []
+  const startRegex = /<(div|section)\b[^>]*\bclass\s*=\s*["'][^"']*(?:(?<![a-zA-Z0-9_-])field--name-field-passage(?![a-zA-Z0-9_-])|(?<![a-zA-Z0-9_-])reading-passage(?![a-zA-Z0-9_-]))[^"']*["'][^>]*>/gi
+  let match: RegExpExecArray | null
+  while ((match = startRegex.exec(html)) !== null) {
+    const tagName = match[1].toLowerCase()
+    const startIndex = match.index + match[0].length
+    let depth = 1
+    const tagRegex = new RegExp(`<\/?${tagName}\\b[^>]*>`, "gi")
+    tagRegex.lastIndex = startIndex
+    let tagMatch: RegExpExecArray | null
+    let endIndex = -1
+    while ((tagMatch = tagRegex.exec(html)) !== null) {
+      if (tagMatch[0].startsWith("</")) {
+        depth--
+        if (depth === 0) {
+          endIndex = tagMatch.index
+          break
+        }
+      } else if (!tagMatch[0].endsWith("/>")) {
+        depth++
+      }
+    }
+    if (endIndex !== -1) {
+      containers.push(html.slice(startIndex, endIndex))
+      startRegex.lastIndex = tagRegex.lastIndex
+    } else {
+      containers.push(html.slice(startIndex))
+    }
+  }
+  return containers
+}
+
+export function extractReadingPassageBlocks(rawHtml: string): ReadingPassageBlock[] {
+  if (!rawHtml || typeof rawHtml !== "string") return []
+
+  const containers = extractPassageContainerHtml(rawHtml)
+  const targetHtml = containers.length > 0 ? containers.join("\n") : rawHtml
+
+  const sanitized = targetHtml
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+
+  const blocks: ReadingPassageBlock[] = []
+  const blockRegex = /<(h[1-6]|p|ul|ol|table)(?:\s[^>]*)?>([\s\S]*?)<\/\1>|<(img)(?:\s[^>]*)?\/?>/gi
+
+  let match: RegExpExecArray | null
+  while ((match = blockRegex.exec(sanitized)) !== null) {
+    const tagName = (match[1] || match[3] || "").toLowerCase()
+    const fullTag = match[0]
+    const inner = match[2] || ""
+
+    if (tagName.startsWith("h")) {
+      const text = cleanText(inner)
+      if (text) {
+        blocks.push({ type: "heading", text })
+      }
+    } else if (tagName === "p") {
+      if (/<img[^>]+>/i.test(inner)) {
+        const parts = inner.split(/(<img[^>]+>)/i)
+        for (const part of parts) {
+          if (/<img[^>]+>/i.test(part)) {
+            const src = part.match(/src=["']([^"']+)["']/i)?.[1]
+            const alt = part.match(/alt=["']([^"']*)["']/i)?.[1]
+            if (src) {
+              blocks.push({ type: "image", src: decodeHtml(src), alt: alt ? decodeHtml(alt) : undefined })
+            }
+          } else {
+            const text = cleanText(part)
+            if (text) {
+              blocks.push({ type: "paragraph", text })
+            }
+          }
+        }
+      } else {
+        const text = cleanText(inner)
+        if (text) {
+          blocks.push({ type: "paragraph", text })
+        }
+      }
+    } else if (tagName === "img") {
+      const src = fullTag.match(/src=["']([^"']+)["']/i)?.[1]
+      const alt = fullTag.match(/alt=["']([^"']*)["']/i)?.[1]
+      if (src) {
+        blocks.push({ type: "image", src: decodeHtml(src), alt: alt ? decodeHtml(alt) : undefined })
+      }
+    } else if (tagName === "ul" || tagName === "ol") {
+      const items = [...inner.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)]
+        .map((m) => cleanText(m[1]))
+        .filter(Boolean)
+      if (items.length > 0) {
+        blocks.push({ type: "list", items })
+      }
+    } else if (tagName === "table") {
+      const rows: string[][] = []
+      const trMatches = [...inner.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
+      for (const tr of trMatches) {
+        const cells = [...tr[1].matchAll(/<(?:td|th)[^>]*>([\s\S]*?)<\/(?:td|th)>/gi)]
+          .map((m) => cleanText(m[1]))
+        if (cells.length > 0) {
+          rows.push(cells)
+        }
+      }
+      if (rows.length > 0) {
+        blocks.push({ type: "table", rows })
+      }
+    }
+  }
+
+  if (blocks.length === 0) {
+    const text = cleanText(sanitized)
+    if (text) {
+      blocks.push({ type: "paragraph", text })
+    }
+  }
+
+  return blocks
+}
 
 export function extractReadingPassage(panelHtml: string): string | undefined {
+  const containers = extractPassageContainerHtml(panelHtml)
+  if (containers.length > 0) {
+    const blocks = extractReadingPassageBlocks(containers[0])
+    if (blocks.length > 0) {
+      const text = blocks
+        .filter((b) => b.type === "heading" || b.type === "paragraph" || b.type === "list")
+        .map((b) => (b.type === "list" ? (b.items || []).join(" ") : b.text || ""))
+        .filter(Boolean)
+        .join(" ")
+      if (text) return text
+    }
+    return cleanText(containers[0]) || undefined
+  }
   const passageMatch = READING_PASSAGE_RE.exec(panelHtml)
   READING_PASSAGE_RE.lastIndex = 0
   if (!passageMatch) return undefined
@@ -188,9 +323,32 @@ export function extractReadingPassage(panelHtml: string): string | undefined {
 }
 
 function extractReadingPassages(html: string): string[] {
+  const containers = extractPassageContainerHtml(html)
+  if (containers.length > 0) {
+    return containers
+      .map((c) => {
+        const blocks = extractReadingPassageBlocks(c)
+        if (blocks.length > 0) {
+          const text = blocks
+            .filter((b) => b.type === "heading" || b.type === "paragraph" || b.type === "list")
+            .map((b) => (b.type === "list" ? (b.items || []).join(" ") : b.text || ""))
+            .filter(Boolean)
+            .join(" ")
+          if (text) return text
+        }
+        return cleanText(c)
+      })
+      .filter(Boolean)
+  }
   return [...html.matchAll(READING_PASSAGE_RE)]
     .map((match) => cleanText(match[1]))
     .filter(Boolean)
+}
+
+function extractAllRawPassageHtml(html: string): string[] {
+  const containers = extractPassageContainerHtml(html)
+  if (containers.length > 0) return containers
+  return [...html.matchAll(READING_PASSAGE_RE)].map((m) => m[1]).filter(Boolean)
 }
 
 function parseAnswerValue(value: string): QuestionAnswer {
@@ -558,6 +716,7 @@ export function parsePageSections(html: string, skill: "listening" | "reading" |
   const panelMatches = [...html.matchAll(/<section[^>]+class=["'][^"']*test-panel[^"']*["'][\s\S]*?<\/section>/gi)]
   const panels = panelMatches.length > 0 ? panelMatches.map((match) => match[0]) : [html]
   const upstreamPassages = skill === "reading" ? extractReadingPassages(html) : []
+  const upstreamRawPassages = skill === "reading" ? extractAllRawPassageHtml(html) : []
 
   panels.forEach((panel, panelIndex) => {
     const questions = parseScopedQuestions(panel, skill, answers)
@@ -565,9 +724,23 @@ export function parsePageSections(html: string, skill: "listening" | "reading" |
 
     const title = stripTags(panel.match(/<h2[^>]*class=["'][^"']*test-panel__title[^"']*["'][^>]*>([\s\S]*?)<\/h2>/i)?.[1] || "") || `Part ${panelIndex + 1}`
     const instructions = extractInstructionsFromHtml(panel) || (skill === "reading" ? "Read the passage and answer the questions below." : undefined)
+    const rawPassage =
+      skill === "reading"
+        ? extractPassageContainerHtml(panel)[0] || upstreamRawPassages[panelIndex] || upstreamRawPassages[0]
+        : undefined
+    const passageBlocks = rawPassage ? extractReadingPassageBlocks(rawPassage) : undefined
     const passageText =
       skill === "reading"
-        ? extractReadingPassage(panel) || upstreamPassages[panelIndex] || upstreamPassages[0]
+        ? (passageBlocks && passageBlocks.length > 0
+            ? passageBlocks
+                .filter((b) => b.type === "heading" || b.type === "paragraph" || b.type === "list")
+                .map((b) => (b.type === "list" ? (b.items || []).join(" ") : b.text || ""))
+                .filter(Boolean)
+                .join(" ")
+            : undefined) ||
+          extractReadingPassage(panel) ||
+          upstreamPassages[panelIndex] ||
+          upstreamPassages[0]
         : undefined
     
     // Deduplicate Reading sections if they have identical passage text and title
@@ -609,6 +782,7 @@ export function parsePageSections(html: string, skill: "listening" | "reading" |
       title,
       instructions,
       passageText,
+      passageBlocks: passageBlocks && passageBlocks.length > 0 ? passageBlocks : undefined,
       audioUrl: audioUrls[panelIndex] || audioUrls[0],
       audioTimestamp: extractAudioTimestamp(panel),
       examples: examples.length > 0 ? examples : undefined,
@@ -623,11 +797,14 @@ export function parsePageSections(html: string, skill: "listening" | "reading" |
       .filter((number, index, values) => number > 0 && values.indexOf(number) === index)
       .sort((a, b) => a - b)
     if (numbers.length) {
+      const fallbackRaw = skill === "reading" ? extractPassageContainerHtml(html)[0] : undefined
+      const fallbackBlocks = fallbackRaw ? extractReadingPassageBlocks(fallbackRaw) : undefined
       sections.push({
         id: "sec-1",
         title: skill === "listening" ? "Listening test" : "Reading passage",
         instructions: "Complete all questions.",
         passageText: skill === "reading" ? extractReadingPassage(html) : undefined,
+        passageBlocks: fallbackBlocks && fallbackBlocks.length > 0 ? fallbackBlocks : undefined,
         audioUrl: audioUrls[0],
         questions: numbers.map((number) => ({
           id: `${skill}-q${number}`,
