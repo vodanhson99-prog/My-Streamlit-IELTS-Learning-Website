@@ -4,6 +4,8 @@ import type { LockedTask1Evaluation } from "../ielts-evaluation/task1/contracts"
 export interface TutorMessage {
   readonly role: "user" | "assistant"
   readonly content: string
+  readonly references?: readonly string[]
+  readonly suggestedFollowUps?: readonly string[]
 }
 
 export type TutorErrorKind =
