@@ -36,6 +36,8 @@ const evidenceAnchor = z.discriminatedUnion("type", [
   z.object({ type: z.literal("global") }).strict(),
 ])
 
+const blocker = z.string().trim().min(1)
+
 const evidence = z.object({
   anchor: evidenceAnchor,
   rationale: z.string().trim().min(1),
@@ -48,7 +50,7 @@ function createResultSchema(criterionId: IeltsTask2CriterionId, labels: readonly
     descriptorId: z.string().trim().min(1),
     supportingEvidence: z.array(evidence).min(1),
     limitingEvidence: z.array(evidence),
-    nextBandBlockers: z.array(z.string().trim().min(1)),
+    nextBandBlockers: z.array(blocker),
     annotationCandidates: z.array(z.object({
       quote: z.string().trim().min(1),
       label: z.enum(labels),

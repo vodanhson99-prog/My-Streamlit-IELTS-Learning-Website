@@ -97,11 +97,32 @@ describe("grader validation", () => {
     await expect(grader({ task, essay, rubric: IELTS_TASK2_RUBRIC })).rejects.toThrow()
   })
 
-  it("rejects wrong criterion and missing limiting evidence below Band 9", async () => {
-    const invalid = outputFor("coherence-cohesion", "logical_organisation")
+  it("rejects unsupported anchor types and malformed blocker objects", async () => {
+    const output = outputFor("task-response", "prompt_coverage")
+    // @ts-expect-error - simulating provider malformed output
+    output.supportingEvidence = [{ anchor: { type: "positive", quote: "Cars offer flexibility" }, rationale: "..." }]
+    const grader = createTaskResponseGrader(providerReturning(output))
+    await expect(grader({ task, essay, rubric: IELTS_TASK2_RUBRIC })).rejects.toThrow()
+
+    const output2 = outputFor("task-response", "prompt_coverage")
+    // @ts-expect-error - simulating provider malformed output
+    output2.nextBandBlockers = [{ reason: "Needs more vocabulary" }]
+    const grader2 = createTaskResponseGrader(providerReturning(output2))
+    await expect(grader2({ task, essay, rubric: IELTS_TASK2_RUBRIC })).rejects.toThrow()
+  })
+
+  it("rejects missing limiting evidence and blockers below Band 9", async () => {
+    const invalid = outputFor("task-response", "prompt_coverage")
+    invalid.band = 7
     invalid.limitingEvidence = []
     const grader = createTaskResponseGrader(providerReturning(invalid))
     await expect(grader({ task, essay, rubric: IELTS_TASK2_RUBRIC })).rejects.toThrow()
+    
+    const invalidBlocker = outputFor("task-response", "prompt_coverage")
+    invalidBlocker.band = 7
+    invalidBlocker.nextBandBlockers = []
+    const graderBlocker = createTaskResponseGrader(providerReturning(invalidBlocker))
+    await expect(graderBlocker({ task, essay, rubric: IELTS_TASK2_RUBRIC })).rejects.toThrow()
   })
 
   it("rejects out-of-taxonomy annotation labels", async () => {
