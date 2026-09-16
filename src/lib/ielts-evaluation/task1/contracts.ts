@@ -4,6 +4,7 @@ import type {
   IeltsBand,
   IeltsHalfBand,
   Task2DescriptorId,
+  EvaluationEvidence,
 } from "../contracts"
 
 export const IELTS_TASK1_CRITERION_IDS = [
@@ -49,8 +50,9 @@ export interface Task1CriterionEvaluation {
   readonly criterionId: IeltsTask1CriterionId
   readonly band: IeltsBand
   readonly descriptorId: Task1DescriptorId | Task2DescriptorId | string
-  readonly evidence: readonly { readonly type: "positive" | "negative"; readonly quote: string; readonly rationale: string }[]
-  readonly blockers: readonly string[]
+  readonly supportingEvidence: readonly EvaluationEvidence[]
+  readonly limitingEvidence: readonly EvaluationEvidence[]
+  readonly nextBandBlockers: readonly string[]
   readonly annotationCandidates: readonly { readonly quote: string; readonly label: string; readonly rationale: string }[]
 }
 

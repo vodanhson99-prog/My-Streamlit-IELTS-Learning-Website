@@ -56,22 +56,31 @@ export function generateCoaching(
   const strengths: string[] = []
   const blockers: string[] = []
 
-  // 1. Identify strengths from criteria with higher bands or positive evidence
   for (const c of criteria) {
-    const positives = c.evidence.filter((e) => e.type === "positive")
-    if (positives.length > 0) {
-      strengths.push(`${c.criterionId}: ${positives[0].rationale}`)
+    if (c.supportingEvidence.length > 0) {
+      strengths.push(`${c.criterionId}: ${c.supportingEvidence[0].rationale}`)
     }
-    blockers.push(...c.blockers)
+    blockers.push(...c.nextBandBlockers)
   }
 
-  // 2. Derive max 3 priorities from lowest scoring criteria
-  const sortedByBand = [...criteria].sort((a, b) => a.band - b.band)
-  const priorities: CoachingPriority[] = sortedByBand.slice(0, 3).map((c) => ({
+  // ponytail: until occurrence/severity metadata exists, band gap and observed limitations approximate learning impact.
+  const priorityScore = (criterion: CriterionEvaluation | Task1CriterionEvaluation) => {
+    const bandGap = 9 - criterion.band
+    const errorFrequency = Math.max(1, criterion.limitingEvidence.length)
+    const severity = criterion.band <= 5 ? 2 : criterion.band <= 7 ? 1.5 : 1
+    const recurrence = Math.max(1, new Set(criterion.limitingEvidence.map((item) => item.rationale)).size)
+    const learningImpact = criterion.nextBandBlockers.length > 0 ? 2 : 1
+    return bandGap * errorFrequency * severity * recurrence * learningImpact
+  }
+
+  const sortedByPriority = criteria
+    .filter((criterion) => criterion.nextBandBlockers.length > 0 || criterion.limitingEvidence.length > 0)
+    .sort((a, b) => priorityScore(b) - priorityScore(a))
+  const priorities: CoachingPriority[] = sortedByPriority.slice(0, 3).map((c) => ({
     criterionId: c.criterionId,
     title: `Improve ${c.criterionId} (Band ${c.band})`,
-    rationale: c.blockers[0] || `Current performance is limited by descriptor ${c.descriptorId}`,
-    actionItem: `Focus on overcoming: ${c.blockers[0] || "accuracy and consistency"} in your next draft.`,
+    rationale: c.nextBandBlockers[0] || c.limitingEvidence[0]?.rationale || `Current performance is limited by descriptor ${c.descriptorId}`,
+    actionItem: `Focus on overcoming: ${c.nextBandBlockers[0] || c.limitingEvidence[0]?.rationale || "accuracy and consistency"} in your next draft.`,
   }))
 
   // 3. Derive contextual vocabulary suggestions from resolved lexical annotations
@@ -97,12 +106,12 @@ export function generateCoaching(
   }))
 
   let targetBandPlan: WritingCoaching["targetBandPlan"] = undefined
-  if (targetBand && targetBand > lockedEval.overallBand) {
+  if (targetBand && targetBand > lockedEval.overallBand && sortedByPriority.length > 0) {
     targetBandPlan = {
       currentBand: lockedEval.overallBand,
       targetBand,
       keyMilestones: [
-        `Elevate ${sortedByBand[0].criterionId} from Band ${sortedByBand[0].band} to ${Math.min(9, sortedByBand[0].band + 1)}`,
+        `Elevate ${sortedByPriority[0].criterionId} from Band ${sortedByPriority[0].band} to ${Math.min(9, sortedByPriority[0].band + 1)}`,
         `Address priority blockers: ${blockers.slice(0, 2).join("; ")}`,
       ],
     }

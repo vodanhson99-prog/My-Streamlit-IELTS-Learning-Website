@@ -26,11 +26,13 @@ function outputFor(criterionId: IeltsTask2CriterionId, label: string) {
     criterionId,
     band: 7,
     descriptorId: `task2-2023-05.${criterionId}.band-7`,
-    evidence: [
-      { type: "positive", quote: "public transport reduces congestion", rationale: "Relevant strength." },
-      { type: "negative", quote: "Cars offer flexibility", rationale: "Development remains limited." },
+    supportingEvidence: [
+      { anchor: { type: "span", quote: "public transport reduces congestion" }, rationale: "Relevant strength." },
     ],
-    blockers: ["Ideas need fuller support for Band 8."],
+    limitingEvidence: [
+      { anchor: { type: "span", quote: "Cars offer flexibility" }, rationale: "Development remains limited." },
+    ],
+    nextBandBlockers: ["Ideas need fuller support for Band 8."],
     annotationCandidates: [
       { quote: "public transport reduces congestion", label, rationale: "Criterion-specific evidence." },
     ],
@@ -70,7 +72,8 @@ describe.each(cases)("%s grader", (criterionId, createGrader, label) => {
 
     const payload = requests[0].messages.map(({ content }) => content).join("\n")
     expect(payload).toContain(`assigned criterion: ${criterionId}`)
-    expect(payload).toContain("positive and negative evidence")
+    expect(payload).toContain("supporting evidence")
+    expect(payload).toContain("limiting evidence")
     expect(payload).toContain("next-band blockers")
     expect(payload).toContain("Do not rewrite")
     expect(payload).toContain("structured JSON only")
@@ -94,9 +97,9 @@ describe("grader validation", () => {
     await expect(grader({ task, essay, rubric: IELTS_TASK2_RUBRIC })).rejects.toThrow()
   })
 
-  it("rejects wrong criterion and missing evidence polarity", async () => {
+  it("rejects wrong criterion and missing limiting evidence below Band 9", async () => {
     const invalid = outputFor("coherence-cohesion", "logical_organisation")
-    invalid.evidence = [invalid.evidence[0]]
+    invalid.limitingEvidence = []
     const grader = createTaskResponseGrader(providerReturning(invalid))
     await expect(grader({ task, essay, rubric: IELTS_TASK2_RUBRIC })).rejects.toThrow()
   })

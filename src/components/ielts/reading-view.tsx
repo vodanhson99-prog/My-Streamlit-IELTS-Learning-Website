@@ -306,7 +306,7 @@ export function ReadingView({
         <button
           type="button"
           onClick={() => setMobileTab("passage")}
-          className={`flex-1 min-h-[38px] text-xs font-mono rounded-[2px] transition-colors ${
+          className={`flex-1 min-h-9.5 text-xs font-mono rounded-[2px] transition-colors ${
             mobileTab === "passage"
               ? "bg-background text-foreground font-semibold shadow-xs"
               : "text-muted-foreground hover:text-foreground"
@@ -318,7 +318,7 @@ export function ReadingView({
         <button
           type="button"
           onClick={() => setMobileTab("questions")}
-          className={`flex-1 min-h-[38px] text-xs font-mono rounded-[2px] transition-colors ${
+          className={`flex-1 min-h-9.5 text-xs font-mono rounded-[2px] transition-colors ${
             mobileTab === "questions"
               ? "bg-background text-foreground font-semibold shadow-xs"
               : "text-muted-foreground hover:text-foreground"

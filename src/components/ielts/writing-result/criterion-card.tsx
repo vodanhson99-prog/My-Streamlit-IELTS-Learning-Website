@@ -1,24 +1,37 @@
 import { Badge } from "@/components/ui/badge"
+import type { EvaluationEvidence } from "@/lib/ielts-evaluation/contracts"
 import { CheckCircle2, XCircle } from "lucide-react"
 
 interface CriterionCardProps {
   criterionId: string
   band: number
   descriptorId?: string
-  evidence: readonly { readonly type: "positive" | "negative"; readonly quote: string; readonly rationale: string }[]
+  supportingEvidence: readonly EvaluationEvidence[]
+  limitingEvidence: readonly EvaluationEvidence[]
   blockers: readonly string[]
+}
+
+function anchorLabel(evidence: EvaluationEvidence): string {
+  if (evidence.anchor.type === "span") return `“${evidence.anchor.quote}”`
+  if (evidence.anchor.type === "paragraph") return `Paragraph ${evidence.anchor.paragraphIndex + 1}`
+  return "Whole response"
 }
 
 export function CriterionCard({
   criterionId,
   band,
-  evidence,
+  supportingEvidence,
+  limitingEvidence,
   blockers,
 }: CriterionCardProps) {
   const formattedName = criterionId
     .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ")
+  const evidence = [
+    ...supportingEvidence.map((item) => ({ item, kind: "supporting" as const })),
+    ...limitingEvidence.map((item) => ({ item, kind: "limiting" as const })),
+  ]
 
   return (
     <div className="rounded-[3px] border border-border bg-card p-4 flex flex-col gap-3">
@@ -29,45 +42,43 @@ export function CriterionCard({
         </Badge>
       </div>
 
-      {/* Evidence list */}
       <div className="flex flex-col gap-2">
-        <span className="text-[10px] font-mono uppercase text-muted-foreground">Direct Evidence Quotes</span>
-        {evidence.map((ev, i) => (
+        <span className="text-[10px] font-mono uppercase text-muted-foreground">Descriptor Evidence</span>
+        {evidence.map(({ item, kind }, index) => (
           <div
-            key={i}
+            key={`${kind}-${index}`}
             className={`p-2.5 rounded-[2px] border text-xs leading-relaxed ${
-              ev.type === "positive"
+              kind === "supporting"
                 ? "bg-emerald-500/5 border-emerald-500/20 text-foreground"
                 : "bg-amber-500/5 border-amber-500/20 text-foreground"
             }`}
           >
             <div className="flex items-center gap-1.5 mb-1 font-mono text-[10px]">
-              {ev.type === "positive" ? (
+              {kind === "supporting" ? (
                 <CheckCircle2 className="size-3 text-emerald-600" />
               ) : (
                 <XCircle className="size-3 text-amber-600" />
               )}
-              <span className={ev.type === "positive" ? "text-emerald-700 font-semibold" : "text-amber-700 font-semibold"}>
-                {ev.type === "positive" ? "Strength" : "Limitation"}
+              <span className={kind === "supporting" ? "text-emerald-700 font-semibold" : "text-amber-700 font-semibold"}>
+                {kind === "supporting" ? "Strength" : "Limitation"}
               </span>
             </div>
-            <p className="italic font-serif">&ldquo;{ev.quote}&rdquo;</p>
-            <p className="text-[10px] text-muted-foreground mt-1">{ev.rationale}</p>
+            <p className="italic font-serif">{anchorLabel(item)}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">{item.rationale}</p>
           </div>
         ))}
       </div>
 
-      {/* Next band blockers */}
-      {blockers.length > 0 && (
+      {blockers.length > 0 ? (
         <div className="flex flex-col gap-1 pt-2 border-t border-border">
           <span className="text-[10px] font-mono uppercase text-muted-foreground">Blockers for Next Band</span>
           <ul className="list-disc list-inside text-xs text-muted-foreground space-y-0.5">
-            {blockers.map((b, i) => (
-              <li key={i}>{b}</li>
+            {blockers.map((blocker, index) => (
+              <li key={index}>{blocker}</li>
             ))}
           </ul>
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

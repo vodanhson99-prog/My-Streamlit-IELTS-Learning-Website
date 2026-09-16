@@ -66,7 +66,7 @@ Return JSON:
 ${wrapUntrustedContent("ESSAY_DATA", input.essay)}
 
 Primary evaluation band: ${criterionEvaluation.band}
-Current blockers: ${criterionEvaluation.blockers.join("; ")}
+Current next-band blockers: ${criterionEvaluation.nextBandBlockers.join("; ") || "None reported"}
 
 Adjudicate between Band ${lowerBand} and Band ${higherBand}.`
 

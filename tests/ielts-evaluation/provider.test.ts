@@ -25,10 +25,17 @@ async function normalizedError(provider: ReturnType<typeof createGroqProvider>):
 afterEach(() => vi.unstubAllGlobals())
 
 describe("createGroqProvider", () => {
-  it("returns provider text through stable boundary", async () => {
-    const fetcher = vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }), { status: 200 }))
+  it("requests non-streaming completions", async () => {
+    const fetcher = vi.fn<typeof fetch>(async (...args) => {
+      void args
+      return new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }), { status: 200 })
+    })
     const provider = createGroqProvider({ apiKey: "secret", fetcher })
+
     await expect(provider.complete(request)).resolves.toEqual({ text: "ok", provider: "openai-compatible" })
+
+    const init = fetcher.mock.calls[0]?.[1]
+    expect(JSON.parse(String(init?.body))).toMatchObject({ stream: false })
   })
 
   it.each([
@@ -108,6 +115,21 @@ describe("completeStructured", () => {
       maxTokens: 200,
     })
     expect(parse).toHaveBeenCalledWith({ band: 7 })
+  })
+
+  it("accepts a single JSON object wrapped in a Markdown fence", async () => {
+    const provider = {
+      complete: vi.fn(async () => ({ text: '```json\n{"band":7}\n```', provider: "groq" as const })),
+    }
+
+    await expect(completeStructured(provider, {
+      system: "system",
+      user: "user",
+      temperature: 0.1,
+      maxTokens: 200,
+      schema: {},
+      parse: (raw) => raw,
+    })).resolves.toEqual({ data: { band: 7 }, provider: "groq" })
   })
 
   it("rejects malformed structured JSON", async () => {

@@ -49,7 +49,9 @@ ${wrapUntrustedContent("LOCKED_EVALUATION", {
   criteria: input.evaluation.criteria.map((c) => ({
     criterionId: c.criterionId,
     band: c.band,
-    blockers: c.blockers,
+    supportingEvidence: c.supportingEvidence,
+    limitingEvidence: c.limitingEvidence,
+    nextBandBlockers: c.nextBandBlockers,
   })),
 })}
 

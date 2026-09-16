@@ -13,11 +13,13 @@ function createMockCriterion(id: CriterionEvaluation["criterionId"], band: Crite
     criterionId: id,
     band,
     descriptorId: `task2-2023-05.${id}.band-${band}`,
-    evidence: [
-      { type: "positive", quote: "international businesses coordinate operations seamlessly", rationale: "Relevant example" },
-      { type: "negative", quote: "individuals face challenges when digital interactions replace human empathy", rationale: "Needs elaboration" },
+    supportingEvidence: [
+      { anchor: { type: "span", quote: "international businesses coordinate operations seamlessly" }, rationale: "Relevant example" },
     ],
-    blockers: ["needs deeper nuance"],
+    limitingEvidence: [
+      { anchor: { type: "span", quote: "individuals face challenges when digital interactions replace human empathy" }, rationale: "Needs elaboration" },
+    ],
+    nextBandBlockers: ["needs deeper nuance"],
     annotationCandidates: [
       { quote: "international businesses coordinate operations seamlessly", label: id === "task-response" ? "addresses-prompt" : id === "lexical-resource" ? "topic-lexis" : id === "coherence-cohesion" ? "paragraph-topic" : "complex-subordinate", rationale: "good phrase" },
     ],
@@ -111,9 +113,8 @@ describe("evaluateTask2 Orchestration", () => {
     const customGraders = {
       "task-response": async (): Promise<CriterionEvaluation> => ({
         ...createMockCriterion("task-response", 6),
-        evidence: [
-          { type: "positive" as const, quote: "this quote is completely made up and not in essay", rationale: "fake" },
-          { type: "negative" as const, quote: "individuals face challenges when digital interactions replace human empathy", rationale: "test" },
+        supportingEvidence: [
+          { anchor: { type: "span" as const, quote: "this quote is completely made up and not in essay" }, rationale: "fake" },
         ],
       }),
       "coherence-cohesion": async () => createMockCriterion("coherence-cohesion", 6),

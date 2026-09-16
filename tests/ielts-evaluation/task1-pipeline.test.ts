@@ -16,11 +16,13 @@ function makeCriterion(id: IeltsTask1CriterionId, band: IeltsBand): Task1Criteri
     criterionId: id,
     band,
     descriptorId: `task1-academic-2023-05.${id}.band-${band}`,
-    evidence: [
-      { type: "positive" as const, quote: "solar and wind power expanded rapidly", rationale: "Clear trend" },
-      { type: "negative" as const, quote: "solar power surpassed 40 percent", rationale: "Needs comparative data" },
+    supportingEvidence: [
+      { anchor: { type: "span" as const, quote: "solar and wind power expanded rapidly" }, rationale: "Clear trend" },
     ],
-    blockers: ["needs deeper data points"],
+    limitingEvidence: [
+      { anchor: { type: "span" as const, quote: "solar power surpassed 40 percent" }, rationale: "Needs comparative data" },
+    ],
+    nextBandBlockers: ["needs deeper data points"],
     annotationCandidates: [
       { quote: "solar and wind power expanded rapidly", label: "overview", rationale: "identifies key trend" },
     ],

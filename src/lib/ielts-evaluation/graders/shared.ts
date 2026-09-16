@@ -30,19 +30,25 @@ const inputSchema = z.object({
   rubric: z.custom<Task2Rubric>(),
 }).strict()
 
-function createResultSchema(criterionId: IeltsTask2CriterionId, labels: readonly [string, ...string[]]) {
-  const evidence = z.object({
-    type: z.enum(["positive", "negative"]),
-    quote: z.string().trim().min(1),
-    rationale: z.string().trim().min(1),
-  }).strict()
+const evidenceAnchor = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("span"), quote: z.string().trim().min(1) }).strict(),
+  z.object({ type: z.literal("paragraph"), paragraphIndex: z.number().int().nonnegative() }).strict(),
+  z.object({ type: z.literal("global") }).strict(),
+])
 
+const evidence = z.object({
+  anchor: evidenceAnchor,
+  rationale: z.string().trim().min(1),
+}).strict()
+
+function createResultSchema(criterionId: IeltsTask2CriterionId, labels: readonly [string, ...string[]]) {
   return z.object({
     criterionId: z.literal(criterionId),
     band: z.union(IELTS_BANDS.map((band) => z.literal(band))),
     descriptorId: z.string().trim().min(1),
-    evidence: z.array(evidence).min(2),
-    blockers: z.array(z.string().trim().min(1)).min(1),
+    supportingEvidence: z.array(evidence).min(1),
+    limitingEvidence: z.array(evidence),
+    nextBandBlockers: z.array(z.string().trim().min(1)),
     annotationCandidates: z.array(z.object({
       quote: z.string().trim().min(1),
       label: z.enum(labels),
@@ -53,11 +59,11 @@ function createResultSchema(criterionId: IeltsTask2CriterionId, labels: readonly
     if (value.descriptorId !== expectedDescriptorId) {
       context.addIssue({ code: "custom", path: ["descriptorId"], message: `Expected ${expectedDescriptorId}` })
     }
-    const polarities = new Set(value.evidence.map(({ type }) => type))
-    for (const required of ["positive", "negative"] as const) {
-      if (!polarities.has(required)) {
-        context.addIssue({ code: "custom", path: ["evidence"], message: `Missing ${required} evidence` })
-      }
+    if (value.band < 9 && value.limitingEvidence.length === 0) {
+      context.addIssue({ code: "custom", path: ["limitingEvidence"], message: "At least one limiting evidence item required below Band 9" })
+    }
+    if (value.band < 9 && value.nextBandBlockers.length === 0) {
+      context.addIssue({ code: "custom", path: ["nextBandBlockers"], message: "At least one next-band blocker required below Band 9" })
     }
   })
 }

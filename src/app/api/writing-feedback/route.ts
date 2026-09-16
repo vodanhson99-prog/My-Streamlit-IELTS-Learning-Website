@@ -240,8 +240,8 @@ export async function POST(request: Request) {
     )
 
     const criteriaSentences: [string, string][] = evaluation.criteria.map((c) => {
-      const topPositive = c.evidence.find((e) => e.type === "positive")?.rationale || ""
-      return [c.criterionId, `Band ${c.band}: ${topPositive || c.blockers[0] || ""}`]
+      const topSupporting = c.supportingEvidence[0]?.rationale || ""
+      return [c.criterionId, `Band ${c.band}: ${topSupporting || c.nextBandBlockers[0] || ""}`]
     })
 
     const criterionBandsObj: Record<string, number> = {}

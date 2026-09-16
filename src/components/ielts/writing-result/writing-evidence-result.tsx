@@ -113,8 +113,9 @@ export function WritingEvidenceResult({
                 criterionId={c.criterionId}
                 band={c.band}
                 descriptorId={c.descriptorId}
-                evidence={c.evidence || []}
-                blockers={c.blockers || []}
+                supportingEvidence={c.supportingEvidence}
+                limitingEvidence={c.limitingEvidence}
+                blockers={c.nextBandBlockers}
               />
             ))}
           </div>

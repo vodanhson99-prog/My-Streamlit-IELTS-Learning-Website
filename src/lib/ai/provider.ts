@@ -11,6 +11,12 @@ const chatCompletionsResponseSchema = z.object({
   choices: z.array(z.object({ message: z.object({ content: z.string().min(1) }) })).min(1),
 })
 
+function parseJsonText(text: string): unknown {
+  const trimmed = text.trim()
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)
+  return JSON.parse(fenced?.[1] ?? trimmed)
+}
+
 function sanitizeProviderError(error: unknown): string {
   if (error instanceof AIProviderError) return error.message
   if (error instanceof Error) return error.message.slice(0, 180)
@@ -101,6 +107,7 @@ export function createAIProvider(options: AIProviderOptions = {}): AIProvider {
               messages: request.messages,
               max_tokens: request.maxTokens,
               temperature: request.temperature,
+              stream: false,
             }),
             signal: AbortSignal.timeout(timeoutMs),
           }),
@@ -149,7 +156,7 @@ export async function completeStructured<T>(
     maxTokens: request.maxTokens,
     temperature: request.temperature,
   })
-  return { data: request.parse(JSON.parse(result.text)), provider: result.provider }
+  return { data: request.parse(parseJsonText(result.text)), provider: result.provider }
 }
 
 export function createEnvironmentAIProvider(): AIProvider {

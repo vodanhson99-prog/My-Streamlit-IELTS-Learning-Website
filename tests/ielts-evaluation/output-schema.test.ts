@@ -10,32 +10,36 @@ const validOutput = {
       criterionId: "task-response",
       band: 7,
       descriptorId: "task2-2023-05.task-response.band-7",
-      evidence: [{ type: "positive", quote: "Governments should fund public transport.", rationale: "Clear position." }],
-      blockers: ["Supporting detail lacks precision."],
+      supportingEvidence: [{ anchor: { type: "span", quote: "Governments should fund public transport." }, rationale: "Clear position." }],
+      limitingEvidence: [{ anchor: { type: "global" }, rationale: "Supporting detail lacks precision." }],
+      nextBandBlockers: ["Supporting detail lacks precision."],
       annotationCandidates: [{ quote: "fund public transport", label: "position", rationale: "Direct answer." }],
     },
     {
       criterionId: "coherence-cohesion",
       band: 7,
       descriptorId: "task2-2023-05.coherence-cohesion.band-7",
-      evidence: [{ type: "positive", quote: "However", rationale: "Marks contrast." }],
-      blockers: ["One paragraph has weak internal sequencing."],
+      supportingEvidence: [{ anchor: { type: "span", quote: "However" }, rationale: "Marks contrast." }],
+      limitingEvidence: [{ anchor: { type: "paragraph", paragraphIndex: 1 }, rationale: "Weak internal sequencing." }],
+      nextBandBlockers: ["One paragraph has weak internal sequencing."],
       annotationCandidates: [{ quote: "However", label: "cohesive-device", rationale: "Contrast marker." }],
     },
     {
       criterionId: "lexical-resource",
       band: 7,
       descriptorId: "task2-2023-05.lexical-resource.band-7",
-      evidence: [{ type: "positive", quote: "public transport", rationale: "Appropriate topic vocabulary." }],
-      blockers: ["Some repeated wording."],
+      supportingEvidence: [{ anchor: { type: "span", quote: "public transport" }, rationale: "Appropriate topic vocabulary." }],
+      limitingEvidence: [{ anchor: { type: "global" }, rationale: "Some repeated wording." }],
+      nextBandBlockers: ["Some repeated wording."],
       annotationCandidates: [{ quote: "public transport", label: "topic-vocabulary", rationale: "Relevant phrase." }],
     },
     {
       criterionId: "grammatical-range-accuracy",
       band: 7,
       descriptorId: "task2-2023-05.grammatical-range-accuracy.band-7",
-      evidence: [{ type: "positive", quote: "Although it costs more, it benefits cities.", rationale: "Accurate complex sentence." }],
-      blockers: ["Minor article errors persist."],
+      supportingEvidence: [{ anchor: { type: "span", quote: "Although it costs more, it benefits cities." }, rationale: "Accurate complex sentence." }],
+      limitingEvidence: [{ anchor: { type: "global" }, rationale: "Minor article errors persist." }],
+      nextBandBlockers: ["Minor article errors persist."],
       annotationCandidates: [{ quote: "Although it costs more", label: "complex-structure", rationale: "Subordinate clause." }],
     },
   ],
@@ -62,11 +66,23 @@ describe("evaluationOutputSchema", () => {
   })
 
   it("rejects missing evidence, blockers, and annotation candidates", () => {
-    for (const field of ["evidence", "blockers", "annotationCandidates"] as const) {
+    for (const field of ["supportingEvidence", "limitingEvidence", "nextBandBlockers", "annotationCandidates"] as const) {
       const invalid = structuredClone(validOutput)
       delete (invalid.criteria[0] as Partial<(typeof invalid.criteria)[number]>)[field]
       expect(evaluationOutputSchema.safeParse(invalid).success).toBe(false)
     }
+  })
+
+  it("allows Band 9 without limiting evidence or next-band blockers", () => {
+    const band9 = structuredClone(validOutput) as unknown as { criteria: Array<Record<string, unknown>> }
+    band9.criteria[0] = {
+      ...band9.criteria[0],
+      band: 9,
+      descriptorId: "task2-2023-05.task-response.band-9",
+      limitingEvidence: [],
+      nextBandBlockers: [],
+    }
+    expect(evaluationOutputSchema.safeParse(band9).success).toBe(true)
   })
 
   it("rejects duplicate or missing criteria", () => {

@@ -7,11 +7,13 @@ function makeCriterion(criterionId: CriterionEvaluation["criterionId"], band: Cr
     criterionId,
     band,
     descriptorId: `task2-2023-05.${criterionId}.band-${band}`,
-    evidence: [
-      { type: "positive", quote: "good points", rationale: "addresses topic" },
-      { type: "negative", quote: "some flaws", rationale: "missing support" },
+    supportingEvidence: [
+      { anchor: { type: "span", quote: "good points" }, rationale: "addresses topic" },
     ],
-    blockers: ["needs deeper nuance"],
+    limitingEvidence: [
+      { anchor: { type: "span", quote: "some flaws" }, rationale: "missing support" },
+    ],
+    nextBandBlockers: ["needs deeper nuance"],
     annotationCandidates: [{ quote: "good points", label: "balanced-argument", rationale: "sound analysis" }],
   }
 }

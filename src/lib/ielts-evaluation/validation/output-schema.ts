@@ -10,9 +10,14 @@ import type { IeltsTask2CriterionId, Task2EvaluationOutput } from "../contracts"
 const bandSchema = z.number().int().min(0).max(9)
 const nonEmptyText = z.string().trim().min(1)
 
+const evidenceAnchorSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("span"), quote: nonEmptyText }).strict(),
+  z.object({ type: z.literal("paragraph"), paragraphIndex: z.number().int().nonnegative() }).strict(),
+  z.object({ type: z.literal("global") }).strict(),
+])
+
 const evidenceSchema = z.object({
-  type: z.enum(["positive", "negative"]),
-  quote: nonEmptyText,
+  anchor: evidenceAnchorSchema,
   rationale: nonEmptyText,
 }).strict()
 
@@ -26,13 +31,20 @@ const criterionEvaluationSchema = z.object({
   criterionId: z.enum(IELTS_TASK2_CRITERION_IDS),
   band: bandSchema,
   descriptorId: nonEmptyText,
-  evidence: z.array(evidenceSchema).min(1),
-  blockers: z.array(nonEmptyText).min(1),
+  supportingEvidence: z.array(evidenceSchema).min(1),
+  limitingEvidence: z.array(evidenceSchema),
+  nextBandBlockers: z.array(nonEmptyText),
   annotationCandidates: z.array(annotationCandidateSchema).min(1),
 }).strict().superRefine((value, context) => {
   const expected = `${IELTS_TASK2_RUBRIC_VERSION}.${value.criterionId}.band-${value.band}`
   if (value.descriptorId !== expected) {
     context.addIssue({ code: "custom", path: ["descriptorId"], message: `Expected descriptorId ${expected}` })
+  }
+  if (value.band < 9 && value.limitingEvidence.length === 0) {
+    context.addIssue({ code: "custom", path: ["limitingEvidence"], message: "At least one limiting evidence item required below Band 9" })
+  }
+  if (value.band < 9 && value.nextBandBlockers.length === 0) {
+    context.addIssue({ code: "custom", path: ["nextBandBlockers"], message: "At least one next-band blocker required below Band 9" })
   }
 })
 

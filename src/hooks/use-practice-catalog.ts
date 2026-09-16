@@ -5,7 +5,7 @@ import { PracticeTest, SkillType, generateTitleSlug } from "@/lib/ielts"
 import { getSelectedSlug } from "@/lib/practice-session"
 
 const CATALOG_STORAGE_KEY = "ielts_practice_catalog_cache_v2"
-const DETAIL_STORAGE_PREFIX = "ielts_test_detail_v2:"
+const DETAIL_STORAGE_PREFIX = "ielts_test_detail_v3:"
 // ponytail: 7-day TTL cache for catalog scan to avoid constant upstream scraping on page transitions
 const CATALOG_SCAN_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -40,9 +40,24 @@ function readCachedDetail(skill: SkillType, slug: string): PracticeTest | null {
     const raw = sessionStorage.getItem(detailKey(skill, slug))
     if (!raw) return null
     const parsed = JSON.parse(raw) as PracticeTest
-    return parsed?.slug ? parsed : null
+    return parsed?.slug && isUsableReadingDetail(parsed) ? parsed : null
   } catch {
     return null
+  }
+}
+
+function isUsableReadingDetail(test: PracticeTest): boolean {
+  return test.skill !== "reading" || test.sections.some((section) => {
+    const passage = section.passageText?.trim() || ""
+    return passage.length > 100 && !/^Part\s+\d+$/i.test(passage)
+  })
+}
+
+function removeLegacyDetail(skill: SkillType, slug: string) {
+  try {
+    sessionStorage.removeItem(`ielts_test_detail_v2:${skill}:${slug}`)
+  } catch {
+    // Ignore storage restrictions.
   }
 }
 
@@ -212,9 +227,9 @@ export function usePracticeCatalog() {
         return cached
       }
     } else {
-      if (test.sections.some((section) => section.questions.length > 0)) return test
+      if (test.sections.some((section) => section.questions.length > 0) && isUsableReadingDetail(test)) return test
       const cached = readCachedDetail(test.skill, test.slug)
-      if (cached && cached.sections.some((section) => section.questions.length > 0)) {
+      if (cached && cached.sections.some((section) => section.questions.length > 0) && isUsableReadingDetail(cached)) {
         setState((prev) => ({
           ...prev,
           tests: prev.tests.map((item) => (item.slug === cached.slug ? cached : item)),
@@ -230,6 +245,10 @@ export function usePracticeCatalog() {
     const data = await response.json()
     if (!response.ok) throw new Error(data.error || `Unable to load ${test.title}.`)
     const detailed = { ...data.test, slug: test.slug, title: test.title } as PracticeTest
+    if (test.skill === "reading" && !isUsableReadingDetail(detailed)) {
+      removeLegacyDetail(test.skill, test.slug)
+      throw new Error(`Unable to parse reading passage for ${test.title}.`)
+    }
     writeCachedDetail(detailed)
     setState((prev) => ({
       ...prev,

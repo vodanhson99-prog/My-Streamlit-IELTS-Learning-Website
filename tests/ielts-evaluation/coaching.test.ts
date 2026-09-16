@@ -16,44 +16,52 @@ const mockLockedEval: LockedTask2Evaluation = Object.freeze({
       criterionId: "task-response" as const,
       band: 6 as const,
       descriptorId: "task2-2023-05.task-response.band-6" as const,
-      evidence: [
-        { type: "positive" as const, quote: "some quote", rationale: "addresses topic" },
-        { type: "negative" as const, quote: "other quote", rationale: "missing nuance" },
+      supportingEvidence: [
+        { anchor: { type: "span" as const, quote: "some quote" }, rationale: "addresses topic" },
       ],
-      blockers: ["needs deeper counter-argument development"],
+      limitingEvidence: [
+        { anchor: { type: "span" as const, quote: "other quote" }, rationale: "missing nuance" },
+      ],
+      nextBandBlockers: ["needs deeper counter-argument development"],
       annotationCandidates: [],
     },
     {
       criterionId: "coherence-cohesion" as const,
       band: 6 as const,
       descriptorId: "task2-2023-05.coherence-cohesion.band-6" as const,
-      evidence: [
-        { type: "positive" as const, quote: "well linked", rationale: "logical progression" },
-        { type: "negative" as const, quote: "repetitive link", rationale: "overuse of 'furthermore'" },
+      supportingEvidence: [
+        { anchor: { type: "span" as const, quote: "well linked" }, rationale: "logical progression" },
       ],
-      blockers: ["overuse of mechanical cohesive devices"],
+      limitingEvidence: [
+        { anchor: { type: "span" as const, quote: "repetitive link" }, rationale: "overuse of 'furthermore'" },
+      ],
+      nextBandBlockers: ["overuse of mechanical cohesive devices"],
       annotationCandidates: [],
     },
     {
       criterionId: "lexical-resource" as const,
       band: 7 as const,
       descriptorId: "task2-2023-05.lexical-resource.band-7" as const,
-      evidence: [
-        { type: "positive" as const, quote: "sophisticated lexis", rationale: "flexible vocabulary" },
-        { type: "negative" as const, quote: "wrong form", rationale: "word formation slip" },
+      supportingEvidence: [
+        { anchor: { type: "span" as const, quote: "sophisticated lexis" }, rationale: "flexible vocabulary" },
       ],
-      blockers: ["minor collocation inaccuracies"],
+      limitingEvidence: [
+        { anchor: { type: "span" as const, quote: "wrong form" }, rationale: "word formation slip" },
+      ],
+      nextBandBlockers: ["minor collocation inaccuracies"],
       annotationCandidates: [],
     },
     {
       criterionId: "grammatical-range-accuracy" as const,
       band: 6 as const,
       descriptorId: "task2-2023-05.grammatical-range-accuracy.band-6" as const,
-      evidence: [
-        { type: "positive" as const, quote: "good clauses", rationale: "mix of complex forms" },
-        { type: "negative" as const, quote: "agreement error", rationale: "subject-verb slip" },
+      supportingEvidence: [
+        { anchor: { type: "span" as const, quote: "good clauses" }, rationale: "mix of complex forms" },
       ],
-      blockers: ["frequent minor grammatical errors"],
+      limitingEvidence: [
+        { anchor: { type: "span" as const, quote: "agreement error" }, rationale: "subject-verb slip" },
+      ],
+      nextBandBlockers: ["frequent minor grammatical errors"],
       annotationCandidates: [],
     },
   ]),
@@ -93,6 +101,22 @@ describe("generateCoaching", () => {
     expect(priorityCriteria).toContain("coherence-cohesion")
     expect(priorityCriteria).toContain("grammatical-range-accuracy")
     expect(priorityCriteria).not.toContain("lexical-resource")
+  })
+
+  it("does not invent improvement priorities for Band 9 criteria without blockers", () => {
+    const bandNine = {
+      ...mockLockedEval,
+      overallBand: 9 as const,
+      criteria: mockLockedEval.criteria.map((criterion) => ({
+        ...criterion,
+        band: 9 as const,
+        descriptorId: `task2-2023-05.${criterion.criterionId}.band-9` as const,
+        limitingEvidence: [],
+        nextBandBlockers: [],
+      })),
+    }
+
+    expect(generateCoaching(bandNine).priorities).toEqual([])
   })
 
   it("extracts vocabulary suggestions strictly from resolved annotations", () => {

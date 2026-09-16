@@ -157,15 +157,40 @@ function cleanPromptText(raw: string): string {
     .trim()
 }
 
+function isQuestionInstruction(text: string): boolean {
+  return /^(?:the\s+text\s+has\s+\d+\s+paragraphs?|which\s+paragraph|complete\s+the\s+following|do\s+the\s+following\s+statements?|do\s+the\s+statements?|in\s+boxes\s+\d+\s*[-–]\s*\d+|according\s+to\s+(?:the\s+)?(?:text|information)|for\s+each\s+question)/i.test(text.trim())
+}
+
+function normalizeQuestionPrompt(raw: string, number: number, hasInput: boolean): string {
+  let text = cleanPromptText(raw)
+  const numberPrefix = new RegExp(`^${number}[\\.:\\-\\)]\\s*`)
+  text = text.replace(numberPrefix, "").replace(/^\d{1,2}[\.:\-\)]\s*/, "").trim()
+
+  if (hasInput) {
+    const inputIndex = text.indexOf("[input]")
+    const beforeInput = inputIndex >= 0 ? text.slice(0, inputIndex).trim() : ""
+    if (isQuestionInstruction(beforeInput)) {
+      text = text.slice(inputIndex + "[input]".length).trim()
+    }
+    text = text.replace(/\s*\[input\]\s*/g, " ").replace(/\s+/g, " ").trim()
+  }
+
+  return text
+}
+
+const READING_PASSAGE_RE = /<(?:div|section)[^>]*class=["'][^"']*(?:field--name-field-passage|reading-passage)(?:\s[^"']*)?["'][^>]*>([\s\S]*?)<\/(?:div|section)>/gi
+
 export function extractReadingPassage(panelHtml: string): string | undefined {
-  let cleaned = panelHtml
+  const passageMatch = READING_PASSAGE_RE.exec(panelHtml)
+  READING_PASSAGE_RE.lastIndex = 0
+  if (!passageMatch) return undefined
+  return cleanText(passageMatch[1]) || undefined
+}
 
-  // Remove elements containing questions or instructions
-  cleaned = cleaned.replace(/<div[^>]*class=["'][^"']*test-panel__heading[^"']*["'][\s\S]*?<\/div>/gi, "")
-  cleaned = cleaned.replace(/<div[^>]*class=["'][^"']*test-panel__(?:item|questions|instruction)[^"']*["'][\s\S]*?(?=<div[^>]*class=["'][^"']*test-panel__(?:item|questions|instruction)|<\/section|$)/gi, "")
-
-  const text = stripTags(cleaned).trim()
-  return text || undefined
+function extractReadingPassages(html: string): string[] {
+  return [...html.matchAll(READING_PASSAGE_RE)]
+    .map((match) => cleanText(match[1]))
+    .filter(Boolean)
 }
 
 function parseAnswerValue(value: string): QuestionAnswer {
@@ -359,13 +384,13 @@ export function parseScopedQuestions(
     ]
     const options = optMatches.map((m) => m[1].trim()).filter((val) => val.length > 0)
     const withoutSelect = pContent.replace(/<select[\s\S]*?<\/select>/gi, " [input] ")
-    const prompt = cleanPromptText(withoutSelect)
+    const prompt = normalizeQuestionPrompt(withoutSelect, num, true)
 
     addQuestion({
       id: `${skill}-q${num}`,
       number: num,
       type: options.length > 0 ? "single_choice" : "fill_in_blank",
-      prompt: prompt.includes("[input]") ? prompt : `${prompt} [input]`,
+      prompt,
       options: options.length > 0 ? options : undefined,
       answer: parseAnswerValue(String(answers.get(num) ?? "")),
     })
@@ -532,6 +557,7 @@ export function parsePageSections(html: string, skill: "listening" | "reading" |
   const audioUrls = [...html.matchAll(/<source[^>]+src=["']([^"']+)["']/gi)].map((match) => decodeHtml(match[1]))
   const panelMatches = [...html.matchAll(/<section[^>]+class=["'][^"']*test-panel[^"']*["'][\s\S]*?<\/section>/gi)]
   const panels = panelMatches.length > 0 ? panelMatches.map((match) => match[0]) : [html]
+  const upstreamPassages = skill === "reading" ? extractReadingPassages(html) : []
 
   panels.forEach((panel, panelIndex) => {
     const questions = parseScopedQuestions(panel, skill, answers)
@@ -539,7 +565,10 @@ export function parsePageSections(html: string, skill: "listening" | "reading" |
 
     const title = stripTags(panel.match(/<h2[^>]*class=["'][^"']*test-panel__title[^"']*["'][^>]*>([\s\S]*?)<\/h2>/i)?.[1] || "") || `Part ${panelIndex + 1}`
     const instructions = extractInstructionsFromHtml(panel) || (skill === "reading" ? "Read the passage and answer the questions below." : undefined)
-    const passageText = skill === "reading" ? extractReadingPassage(panel) : undefined
+    const passageText =
+      skill === "reading"
+        ? extractReadingPassage(panel) || upstreamPassages[panelIndex] || upstreamPassages[0]
+        : undefined
     
     // Deduplicate Reading sections if they have identical passage text and title
     if (skill === "reading" && passageText && sections.length > 0) {

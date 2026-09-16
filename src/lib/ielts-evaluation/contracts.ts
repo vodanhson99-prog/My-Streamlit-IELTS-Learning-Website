@@ -38,9 +38,13 @@ export interface Task2Rubric {
   readonly criteria: readonly RubricCriterion[]
 }
 
+export type EvidenceAnchor =
+  | { readonly type: "span"; readonly quote: string }
+  | { readonly type: "paragraph"; readonly paragraphIndex: number }
+  | { readonly type: "global" }
+
 export interface EvaluationEvidence {
-  readonly type: "positive" | "negative"
-  readonly quote: string
+  readonly anchor: EvidenceAnchor
   readonly rationale: string
 }
 
@@ -69,8 +73,9 @@ export interface CriterionEvaluation {
   readonly criterionId: IeltsTask2CriterionId
   readonly band: IeltsBand
   readonly descriptorId: Task2DescriptorId
-  readonly evidence: readonly EvaluationEvidence[]
-  readonly blockers: readonly string[]
+  readonly supportingEvidence: readonly EvaluationEvidence[]
+  readonly limitingEvidence: readonly EvaluationEvidence[]
+  readonly nextBandBlockers: readonly string[]
   readonly annotationCandidates: readonly AnnotationCandidate[]
 }
 

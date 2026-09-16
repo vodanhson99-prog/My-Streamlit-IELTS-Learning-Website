@@ -8,11 +8,13 @@ const mockEvaluation: CriterionEvaluation = {
   criterionId: "task-response",
   band: 6,
   descriptorId: "task2-2023-05.task-response.band-6",
-  evidence: [
-    { type: "positive", quote: "some quote", rationale: "addresses topic" },
-    { type: "negative", quote: "another quote", rationale: "unsupported ideas" },
+  supportingEvidence: [
+    { anchor: { type: "span", quote: "some quote" }, rationale: "addresses topic" },
   ],
-  blockers: ["ideas need development"],
+  limitingEvidence: [
+    { anchor: { type: "span", quote: "another quote" }, rationale: "unsupported ideas" },
+  ],
+  nextBandBlockers: ["ideas need development"],
   annotationCandidates: [{ quote: "some quote", label: "addresses-prompt", rationale: "relevant" }],
 }
 
