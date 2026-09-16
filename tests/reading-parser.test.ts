@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest"
-import { extractReadingPassage, extractReadingPassageBlocks, parseScopedQuestions, parsePageSections } from "../src/lib/iot-parser"
-import type { ReadingPassageBlock } from "../src/lib/ielts"
+import {
+  extractReadingPassage,
+  extractReadingPassageBlocks,
+  parseScopedQuestions,
+  parsePageSections,
+  normalizePassageImageUrls,
+} from "../src/lib/iot-parser"
+import type { ReadingPassageBlock, PracticeTest } from "../src/lib/ielts"
 
 describe("Reading parser enhancements", () => {
   const sampleReadingHtml = `
@@ -229,5 +235,80 @@ describe("Reading parser enhancements", () => {
       { type: "list", items: ["Bullet 1", "Bullet 2"] },
       { type: "table", rows: [["Header 1", "Header 2"], ["Cell 1", "Cell 2"]] },
     ])
+  })
+
+  it("maps upstream passages by question numeric range even when panels are reordered", () => {
+    // Upstream has Part 2 (Q14-26) first, then Part 1 (Q1-13)
+    const passageHtml = `
+      <div id="split-one">
+        <section id="part-2" class="test-contents ckeditor-wrapper">
+          <div class="field field--name-field-passage-desc"><p>Questions 14 - 26</p></div>
+          <h2 class="subtitle"><div class="field--name-field-subtitle-section">Passage Two Title</div></h2>
+          <div class="field field--name-field-passage"><p>This is passage two.</p></div>
+        </section>
+        <section id="part-1" class="test-contents ckeditor-wrapper">
+          <div class="field field--name-field-passage-desc"><p>Questions 1 - 13</p></div>
+          <h2 class="subtitle"><div class="field--name-field-subtitle-section">Passage One Title</div></h2>
+          <div class="field field--name-field-passage"><p>This is passage one.</p></div>
+        </section>
+      </div>
+      <div id="split-two">
+        <section class="test-panel">
+          <h2 class="test-panel__title">Part 1</h2>
+          <div class="test-panel__item">
+            <h4 class="test-panel__question-title">Questions 1-13</h4>
+            <p><b class="iot-question-number">1.</b><select data-num="1"><option value="A">A</option></select> Prompt 1</p>
+          </div>
+        </section>
+        <section class="test-panel">
+          <h2 class="test-panel__title">Part 2</h2>
+          <div class="test-panel__item">
+            <h4 class="test-panel__question-title">Questions 14-26</h4>
+            <p><b class="iot-question-number">14.</b><select data-num="14"><option value="A">A</option></select> Prompt 14</p>
+          </div>
+        </section>
+      </div>
+    `
+    const sections = parsePageSections(passageHtml, "reading", new Map())
+    expect(sections).toHaveLength(2)
+    // Panel 1 (Q1) must be mapped to Passage 1 ("This is passage one."), not Passage 2
+    expect(sections[0].passageText).toBe("This is passage one.")
+    expect(sections[0].title).toBe("Passage One Title")
+    // Panel 2 (Q14) must be mapped to Passage 2 ("This is passage two.")
+    expect(sections[1].passageText).toBe("This is passage two.")
+    expect(sections[1].title).toBe("Passage Two Title")
+  })
+
+  it("resolves relative passage image URLs and rejects untrusted hosts", () => {
+    const rawTest: PracticeTest = {
+      id: "test-1",
+      slug: "test-1",
+      title: "Test 1",
+      skill: "reading",
+      durationMinutes: 60,
+      sourceUrl: "https://ieltsonlinetests.com/ielts-reading-practice-test",
+      sections: [
+        {
+          id: "sec-1",
+          title: "Passage 1",
+          questions: [],
+          passageBlocks: [
+            { type: "paragraph", text: "Paragraph text" },
+            { type: "image", src: "/sites/default/files/passage.png", alt: "Valid relative" },
+            { type: "image", src: "https://evil.com/leak.png", alt: "Untrusted host" },
+            { type: "image", src: "", alt: "Missing source" },
+          ],
+        },
+      ],
+    }
+    const normalized = normalizePassageImageUrls(rawTest, "https://ieltsonlinetests.com")
+    const blocks = normalized.sections[0].passageBlocks ?? []
+    expect(blocks).toHaveLength(2)
+    expect(blocks[0]).toEqual({ type: "paragraph", text: "Paragraph text" })
+    expect(blocks[1]).toEqual({
+      type: "image",
+      src: "https://ieltsonlinetests.com/sites/default/files/passage.png",
+      alt: "Valid relative",
+    })
   })
 })

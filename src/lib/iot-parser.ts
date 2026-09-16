@@ -351,6 +351,100 @@ function extractAllRawPassageHtml(html: string): string[] {
   return [...html.matchAll(READING_PASSAGE_RE)].map((m) => m[1]).filter(Boolean)
 }
 
+interface UpstreamPassageEntity {
+  rawHtml: string
+  title?: string
+  minQuestion?: number
+  maxQuestion?: number
+}
+
+function extractUpstreamPassageEntities(html: string): UpstreamPassageEntity[] {
+  const entities: UpstreamPassageEntity[] = []
+
+  const sectionMatches = [
+    ...html.matchAll(
+      /<section[^>]+(?:class=["'][^"']*(?:test-contents|ckeditor-wrapper)[^"']*|id=["']part-\d+["'])[\s\S]*?<\/section>/gi
+    ),
+  ]
+
+  if (sectionMatches.length > 0) {
+    for (const match of sectionMatches) {
+      const sectionHtml = match[0]
+      const rawContainers = extractPassageContainerHtml(sectionHtml)
+      if (rawContainers.length === 0) continue
+
+      const qRangeMatch = sectionHtml.match(/questions?\s*(\d+)\s*[-–]\s*(\d+)/i)
+      const minQuestion = qRangeMatch ? Number(qRangeMatch[1]) : undefined
+      const maxQuestion = qRangeMatch ? Number(qRangeMatch[2]) : undefined
+
+      const titleMatch =
+        sectionHtml.match(/class=["'][^"']*field--name-field-subtitle-section[^"']*["'][^>]*>([\s\S]*?)<\/div>/i) ||
+        sectionHtml.match(/<h2[^>]*class=["'][^"']*subtitle[^"']*["'][^>]*>([\s\S]*?)<\/h2>/i) ||
+        sectionHtml.match(/<h1[^>]*class=["'][^"']*test-contents__title[^"']*["'][^>]*>([\s\S]*?)<\/h1>/i)
+      const title = titleMatch ? cleanText(titleMatch[1]) : undefined
+
+      entities.push({
+        rawHtml: rawContainers[0],
+        title,
+        minQuestion,
+        maxQuestion,
+      })
+    }
+  }
+
+  if (entities.length === 0) {
+    const rawContainers = extractPassageContainerHtml(html)
+    for (const container of rawContainers) {
+      entities.push({
+        rawHtml: container,
+      })
+    }
+  }
+
+  return entities
+}
+
+export function normalizePassageImageUrls(test: PracticeTest, baseUrl: string): PracticeTest {
+  let allowedHost: string
+  try {
+    allowedHost = new URL(baseUrl).hostname
+  } catch {
+    return test
+  }
+
+  const sections = test.sections.map((section) => {
+    if (!section.passageBlocks || section.passageBlocks.length === 0) return section
+    const passageBlocks = section.passageBlocks
+      .map((block) => {
+        if (block.type !== "image") return block
+        if (!block.src || typeof block.src !== "string" || !block.src.trim()) return null
+        try {
+          const resolved = new URL(block.src, baseUrl)
+          if (resolved.hostname !== allowedHost) {
+            return null
+          }
+          return {
+            ...block,
+            src: resolved.toString(),
+          }
+        } catch {
+          return null
+        }
+      })
+      .filter((block): block is NonNullable<typeof block> => block !== null)
+
+    return {
+      ...section,
+      passageBlocks,
+    }
+  })
+
+  return {
+    ...test,
+    sections,
+  }
+}
+
 function parseAnswerValue(value: string): QuestionAnswer {
   const cleaned = value.trim()
   if (!cleaned.includes(",") && !/\s+and\s+/i.test(cleaned)) return cleaned
@@ -715,19 +809,77 @@ export function parsePageSections(html: string, skill: "listening" | "reading" |
   const audioUrls = [...html.matchAll(/<source[^>]+src=["']([^"']+)["']/gi)].map((match) => decodeHtml(match[1]))
   const panelMatches = [...html.matchAll(/<section[^>]+class=["'][^"']*test-panel[^"']*["'][\s\S]*?<\/section>/gi)]
   const panels = panelMatches.length > 0 ? panelMatches.map((match) => match[0]) : [html]
-  const upstreamPassages = skill === "reading" ? extractReadingPassages(html) : []
-  const upstreamRawPassages = skill === "reading" ? extractAllRawPassageHtml(html) : []
+  const upstreamEntities = skill === "reading" ? extractUpstreamPassageEntities(html) : []
+  const claimedPassageIndices = new Set<number>()
 
   panels.forEach((panel, panelIndex) => {
     const questions = parseScopedQuestions(panel, skill, answers)
     if (questions.length === 0) return
 
-    const title = stripTags(panel.match(/<h2[^>]*class=["'][^"']*test-panel__title[^"']*["'][^>]*>([\s\S]*?)<\/h2>/i)?.[1] || "") || `Part ${panelIndex + 1}`
+    const panelRawPassage = extractPassageContainerHtml(panel)[0]
+    let matchedEntity: UpstreamPassageEntity | undefined
+    let matchedIndex: number | undefined
+
+    if (skill === "reading" && !panelRawPassage && upstreamEntities.length > 0) {
+      const qNumbers = questions.map((q) => q.number)
+      const minQ = Math.min(...qNumbers)
+      const maxQ = Math.max(...qNumbers)
+
+      // 1. Match by numeric range
+      for (let i = 0; i < upstreamEntities.length; i++) {
+        if (claimedPassageIndices.has(i)) continue
+        const ent = upstreamEntities[i]
+        if (
+          ent.minQuestion !== undefined &&
+          ent.maxQuestion !== undefined &&
+          ((minQ >= ent.minQuestion && minQ <= ent.maxQuestion) ||
+            (maxQ >= ent.minQuestion && maxQ <= ent.maxQuestion) ||
+            (ent.minQuestion >= minQ && ent.maxQuestion <= maxQ))
+        ) {
+          matchedEntity = ent
+          matchedIndex = i
+          break
+        }
+      }
+
+      // 2. Match by panelIndex if available and unclaimed
+      if (!matchedEntity && !claimedPassageIndices.has(panelIndex) && upstreamEntities[panelIndex]) {
+        matchedEntity = upstreamEntities[panelIndex]
+        matchedIndex = panelIndex
+      }
+
+      // 3. Match first unclaimed entity
+      if (!matchedEntity) {
+        for (let i = 0; i < upstreamEntities.length; i++) {
+          if (!claimedPassageIndices.has(i)) {
+            matchedEntity = upstreamEntities[i]
+            matchedIndex = i
+            break
+          }
+        }
+      }
+
+      // 4. Fallback: use first entity if all claimed
+      if (!matchedEntity && upstreamEntities.length > 0) {
+        matchedEntity = upstreamEntities[0]
+      }
+
+      if (matchedIndex !== undefined) {
+        claimedPassageIndices.add(matchedIndex)
+      }
+    }
+
+    const panelTitle = stripTags(panel.match(/<h2[^>]*class=["'][^"']*test-panel__title[^"']*["'][^>]*>([\s\S]*?)<\/h2>/i)?.[1] || "").trim()
+    const upstreamTitle = matchedEntity?.title
+    const title =
+      (upstreamTitle && !/^Part\s*\d+$/i.test(upstreamTitle) && !/^Passage\s*\d+$/i.test(upstreamTitle) ? upstreamTitle : undefined) ||
+      (panelTitle && !/^Part\s*\d+$/i.test(panelTitle) ? panelTitle : undefined) ||
+      upstreamTitle ||
+      panelTitle ||
+      `Part ${panelIndex + 1}`
+
     const instructions = extractInstructionsFromHtml(panel) || (skill === "reading" ? "Read the passage and answer the questions below." : undefined)
-    const rawPassage =
-      skill === "reading"
-        ? extractPassageContainerHtml(panel)[0] || upstreamRawPassages[panelIndex] || upstreamRawPassages[0]
-        : undefined
+    const rawPassage = panelRawPassage || matchedEntity?.rawHtml
     const passageBlocks = rawPassage ? extractReadingPassageBlocks(rawPassage) : undefined
     const passageText =
       skill === "reading"
@@ -739,8 +891,7 @@ export function parsePageSections(html: string, skill: "listening" | "reading" |
                 .join(" ")
             : undefined) ||
           extractReadingPassage(panel) ||
-          upstreamPassages[panelIndex] ||
-          upstreamPassages[0]
+          undefined
         : undefined
     
     // Deduplicate Reading sections if they have identical passage text and title

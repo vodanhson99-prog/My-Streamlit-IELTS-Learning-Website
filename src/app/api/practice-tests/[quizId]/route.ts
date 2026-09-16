@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { FALLBACK_PRACTICE_TESTS } from "@/lib/fallback-catalog"
 import { fetchIot, IotSessionError, IOT_BASE_URL } from "@/lib/iot-session"
-import { parseAnswerMap, parsePracticeTestPage, parseWritingTasks } from "@/lib/iot-parser"
+import { normalizePassageImageUrls, parseAnswerMap, parsePracticeTestPage, parseWritingTasks } from "@/lib/iot-parser"
 import type { PracticeTest, SkillType } from "@/lib/ielts"
 import type { QuestionAnswer } from "@/lib/ielts"
 
@@ -66,6 +66,7 @@ export async function GET(request: Request, context: RouteContext) {
       },
       skill
     )
+    test = normalizePassageImageUrls(test, url.origin)
 
     if (skill === "writing") {
       let writingTasks = test.writingTasks
