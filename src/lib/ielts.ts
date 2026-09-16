@@ -296,13 +296,12 @@ export interface WritingFeedbackResult {
   }
   combined?: CombinedWritingScore
   requestId?: string
-}
-
-export interface HeuristicAnalysis {
-  band_estimate: number
-  notes: string[]
-  word_count: number
-  sentence_count: number
+  status?: "completed"
+  provenance?: {
+    schemaVersion: string
+    promptVersion: string
+    rubricVersions: { task1: string; task2: string }
+  }
 }
 
 export const READING_PASSAGES: ReadingPassage[] = [
@@ -389,64 +388,6 @@ export function rawScoreToIeltsBand(rawScore: number, totalQuestions: number, sk
   if (normalized40 >= 8) return 3.5
   if (normalized40 >= 6) return 3.0
   return 2.5
-}
-
-export function heuristicWritingFeedback(essay: string, taskType: "task1" | "task2" = "task2"): HeuristicAnalysis {
-  const words = essay.match(/\b\w+\b/g) || []
-  const wordCount = words.length
-  const sentences = essay
-    .split(/[.!?]+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-  const sentenceCount = sentences.length
-  const avgSentenceLen = sentenceCount ? wordCount / sentenceCount : 0
-  const minWords = taskType === "task2" ? 250 : 150
-  const notes: string[] = []
-
-  if (wordCount < minWords) {
-    notes.push(`Word count is ${wordCount}; aim for at least ${minWords}.`)
-  } else {
-    notes.push(`Word count OK (${wordCount} words).`)
-  }
-
-  if (avgSentenceLen < 8) {
-    notes.push("Sentences look short/simple on average — try combining ideas with linking words.")
-  } else if (avgSentenceLen > 30) {
-    notes.push("Average sentence length is very high — check for run-on sentences.")
-  } else {
-    notes.push("Sentence length variation looks reasonable.")
-  }
-
-  const linkingWords = [
-    "however",
-    "therefore",
-    "furthermore",
-    "moreover",
-    "in contrast",
-    "as a result",
-    "for example",
-    "in addition",
-    "on the other hand",
-  ]
-  const lowerEssay = essay.toLowerCase()
-  const usedLinks = linkingWords.filter((w) => lowerEssay.includes(w))
-  if (usedLinks.length >= 2) {
-    notes.push(`Good use of cohesive devices (${usedLinks.join(", ")}).`)
-  } else {
-    notes.push("Try using more linking phrases to improve coherence and cohesion.")
-  }
-
-  let bandEstimate = 5.0
-  if (wordCount >= minWords) bandEstimate += 0.5
-  if (avgSentenceLen >= 8 && avgSentenceLen <= 25) bandEstimate += 0.5
-  if (usedLinks.length >= 2) bandEstimate += 1.0
-
-  return {
-    band_estimate: Number(Math.min(bandEstimate, 8.0).toFixed(1)),
-    notes,
-    word_count: wordCount,
-    sentence_count: sentenceCount,
-  }
 }
 
 export function computeReadingScore(passageId: string, answers: number[]): { score: number; total: number } {

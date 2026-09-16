@@ -5,7 +5,31 @@ import { evaluateTask1 } from "@/lib/ielts-evaluation/evaluate-task1"
 import { resolveAnnotations } from "@/lib/ielts-evaluation/annotations/resolver"
 import { generateCoaching } from "@/lib/ielts-evaluation/coaching/generate-coaching"
 import { calculateIeltsHalfBand } from "@/lib/ielts-evaluation/scoring/aggregate"
-import type { WritingFeedbackResult } from "@/lib/ielts"
+import { EVALUATION_SCHEMA_VERSION } from "@/lib/ielts-evaluation/constants"
+import type { WritingFeedbackResult } from "@/lib/ielts" 
+import type { LockedTask1Evaluation } from "@/lib/ielts-evaluation/task1/contracts" 
+import type { LockedTask2Evaluation } from "@/lib/ielts-evaluation/contracts" 
+
+const PROMPT_VERSION = "writing-evaluation-v1" as const
+
+function failedResponse(requestId: string, failedTask: string, error = "Writing evaluation failed.") {
+  return NextResponse.json(
+    { status: "failed", error, retryable: true, failedTask, requestId },
+    { status: 502 },
+  )
+}
+
+function hasCriteria(evaluation: LockedTask1Evaluation | LockedTask2Evaluation): boolean {
+  return evaluation.criteria.length > 0
+} 
+
+function provenance(task1: LockedTask1Evaluation, task2: LockedTask2Evaluation) {
+  return {
+    schemaVersion: EVALUATION_SCHEMA_VERSION,
+    promptVersion: PROMPT_VERSION,
+    rubricVersions: { task1: task1.rubricVersion, task2: task2.rubricVersion },
+  }
+} 
 import type { ResolvedAnnotation } from "@/lib/ielts-evaluation/contracts"
 
 export const maxDuration = 600
@@ -31,11 +55,20 @@ export async function POST(request: Request) {
       if (!task1Essay || task1Essay.length < 20) {
         return NextResponse.json({ error: "Task 1 response must contain at least 20 characters.", requestId }, { status: 400 })
       }
+      if (task1Essay.length > 10000) {
+        return NextResponse.json({ error: "Task 1 response exceeds maximum allowed length of 10,000 characters.", requestId }, { status: 400 })
+      }
       if (!task2Essay || task2Essay.length < 20) {
         return NextResponse.json({ error: "Task 2 response must contain at least 20 characters.", requestId }, { status: 400 })
       }
+      if (task2Essay.length > 10000) {
+        return NextResponse.json({ error: "Task 2 response exceeds maximum allowed length of 10,000 characters.", requestId }, { status: 400 })
+      }
       if (!task1Prompt || !task2Prompt) {
         return NextResponse.json({ error: "Both Task 1 and Task 2 prompts are required for evaluation.", requestId }, { status: 400 })
+      }
+      if (task1Prompt.length > 3000 || task2Prompt.length > 3000) {
+        return NextResponse.json({ error: "Task prompt exceeds maximum allowed length of 3,000 characters.", requestId }, { status: 400 })
       }
 
       const apiKey = process.env.AI_API_KEY?.trim()
@@ -92,15 +125,15 @@ export async function POST(request: Request) {
             : "Unknown evaluation error"
         console.warn(`[writing-feedback][${requestId}] Fail-closed: ${failedPart} failed in ${elapsedMs}ms: ${errDetail}`)
 
-        return NextResponse.json(
-          {
-            error: `Evaluation could not complete for ${failedPart}. Please try submitting again.`,
-            retryable: true,
-            failedTask: failedPart,
-            requestId,
-          },
-          { status: 502 },
+        return failedResponse(
+          requestId,
+          failedPart,
+          `Evaluation could not complete for ${failedPart}. Please try submitting again.`,
         )
+      }
+
+      if (!hasCriteria(t1Result) || !hasCriteria(t2Result)) {
+        return failedResponse(requestId, !hasCriteria(t1Result) && !hasCriteria(t2Result) ? "Task 1 and Task 2" : !hasCriteria(t1Result) ? "Task 1" : "Task 2", "Evaluation returned no criterion scores.")
       }
 
       // Both tasks succeeded: resolve annotations and coaching
@@ -168,9 +201,10 @@ export async function POST(request: Request) {
           displayBand,
         },
         requestId,
+        provenance: provenance(t1Result, t2Result),
       }
 
-      return NextResponse.json(payload)
+      return NextResponse.json({ ...payload, status: "completed" })
     }
 
     // Legacy single task evaluation route
@@ -234,6 +268,11 @@ export async function POST(request: Request) {
         },
         { status: 502 },
       )
+    }
+
+    if (evaluation.criteria.length === 0) {
+      console.warn(`[writing-feedback][${requestId}] Evaluation failed closed in ${elapsedMs}ms: no criterion scores`)
+      return failedResponse(requestId, taskType === "task1" ? "Task 1" : "Task 2", "Evaluation returned no criterion scores.")
     }
 
     console.info(`[writing-feedback][${requestId}] Single task evaluation succeeded in ${elapsedMs}ms (band=${evaluation.overallBand})`)
