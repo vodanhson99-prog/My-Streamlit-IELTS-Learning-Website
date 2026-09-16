@@ -124,3 +124,9 @@ export interface FailedTask2Evaluation {
 
 export type Task2EvaluationResult = LockedTask2Evaluation | FailedTask2Evaluation
 
+export interface CombinedWritingScore {
+  readonly task1CriterionMean: number
+  readonly task2CriterionMean: number
+  readonly weightedWritingMean: number
+  readonly displayBand: IeltsHalfBand
+}

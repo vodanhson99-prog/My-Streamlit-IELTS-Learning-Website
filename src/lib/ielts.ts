@@ -222,7 +222,7 @@ export interface CriterionBands {
   grammar_band?: number | null
 }
 
-import type { LockedTask2Evaluation, ResolvedAnnotation } from "@/lib/ielts-evaluation/contracts"
+import type { LockedTask2Evaluation, ResolvedAnnotation, CombinedWritingScore } from "@/lib/ielts-evaluation/contracts"
 import type { LockedTask1Evaluation } from "@/lib/ielts-evaluation/task1/contracts"
 import type { WritingCoaching } from "@/lib/ielts-evaluation/coaching/generate-coaching"
 
@@ -294,6 +294,7 @@ export interface WritingFeedbackResult {
     resolvedAnnotations: readonly ResolvedAnnotation[]
     coaching?: WritingCoaching
   }
+  combined?: CombinedWritingScore
   requestId?: string
 }
 

@@ -116,10 +116,15 @@ export async function POST(request: Request) {
       }
       const t2Coaching = generateCoaching(t2Result, t2Annotations, targetBand)
 
-      // Official IELTS Writing formula: Task 2 has double the weight of Task 1 -> (Task 1 + 2 * Task 2) / 3
-      const weightedOverall = calculateIeltsHalfBand((t1Result.overallBand + 2 * t2Result.overallBand) / 3)
+      // Official IELTS intermediate rounding rule: 
+      // While task components are rounded to the nearest half band individually for reporting,
+      // the official combined score is computed by applying the 1:2 weighting directly to the raw task means.
+      const task1CriterionMean = t1Result.criteria.reduce((sum, c) => sum + c.band, 0) / t1Result.criteria.length
+      const task2CriterionMean = t2Result.criteria.reduce((sum, c) => sum + c.band, 0) / t2Result.criteria.length
+      const weightedWritingMean = (task1CriterionMean + 2 * task2CriterionMean) / 3
+      const displayBand = calculateIeltsHalfBand(weightedWritingMean)
 
-      console.info(`[writing-feedback][${requestId}] Combined evaluation success in ${elapsedMs}ms: Task1=${t1Result.overallBand}, Task2=${t2Result.overallBand}, Overall=${weightedOverall}`)
+      console.info(`[writing-feedback][${requestId}] Combined evaluation success in ${elapsedMs}ms: Task1=${t1Result.overallBand}, Task2=${t2Result.overallBand}, Overall=${displayBand}`)
 
       const criteriaSentences: [string, string][] = [
         ["task_1_overall", `Task 1 Band ${t1Result.overallBand}: ${t1Result.summary}`],
@@ -128,7 +133,7 @@ export async function POST(request: Request) {
 
       const payload: WritingFeedbackResult = {
         source: "ai",
-        band_estimate: weightedOverall,
+        band_estimate: displayBand,
         criterion_bands: {
           task_achievement_band: t1Result.criteria.find((c) => c.criterionId === "task-achievement")?.band ?? null,
           coherence_cohesion_band: t2Result.criteria.find((c) => c.criterionId === "coherence-cohesion")?.band ?? null,
@@ -155,6 +160,12 @@ export async function POST(request: Request) {
           evaluation: t2Result,
           resolvedAnnotations: t2Annotations,
           coaching: t2Coaching,
+        },
+        combined: {
+          task1CriterionMean,
+          task2CriterionMean,
+          weightedWritingMean,
+          displayBand,
         },
         requestId,
       }
