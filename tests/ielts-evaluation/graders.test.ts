@@ -99,14 +99,12 @@ describe("grader validation", () => {
 
   it("rejects unsupported anchor types and malformed blocker objects", async () => {
     const output = outputFor("task-response", "prompt_coverage")
-    // @ts-expect-error - simulating provider malformed output
-    output.supportingEvidence = [{ anchor: { type: "positive", quote: "Cars offer flexibility" }, rationale: "..." }]
+    output.supportingEvidence = [{ anchor: { type: "positive", quote: "Cars offer flexibility" }, rationale: "..." } as any]
     const grader = createTaskResponseGrader(providerReturning(output))
     await expect(grader({ task, essay, rubric: IELTS_TASK2_RUBRIC })).rejects.toThrow()
 
     const output2 = outputFor("task-response", "prompt_coverage")
-    // @ts-expect-error - simulating provider malformed output
-    output2.nextBandBlockers = [{ reason: "Needs more vocabulary" }]
+    output2.nextBandBlockers = [{ reason: "Needs more vocabulary" } as any]
     const grader2 = createTaskResponseGrader(providerReturning(output2))
     await expect(grader2({ task, essay, rubric: IELTS_TASK2_RUBRIC })).rejects.toThrow()
   })

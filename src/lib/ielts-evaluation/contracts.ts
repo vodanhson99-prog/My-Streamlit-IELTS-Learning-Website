@@ -82,6 +82,7 @@ export interface CriterionEvaluation {
   readonly limitingEvidence: readonly EvaluationEvidence[]
   readonly nextBandBlockers: readonly string[]
   readonly annotationCandidates: readonly AnnotationCandidate[]
+  readonly reliabilityScore?: number
 }
 
 export interface Task2EvaluationOutput {

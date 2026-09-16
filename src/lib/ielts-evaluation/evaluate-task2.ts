@@ -158,32 +158,37 @@ export async function evaluateTask2(input: EvaluateTask2Input): Promise<Task2Eva
     let criterionEval = initialCriteriaMap.get(criterionId)!
     const confMeta = input.confidenceScores?.[criterionId]
 
-    if (confMeta) {
-      const decision = shouldChallenge({
-        band: criterionEval.band,
-        confidence: confMeta.confidence,
-        alternativeBand: confMeta.alternativeBand,
-      })
+    // Objective reliability signals
+    const evidenceSufficient = criterionEval.supportingEvidence.length > 0 &&
+      (criterionEval.band === 9 || criterionEval.limitingEvidence.length > 0)
+    const descriptorConflict = false // Placeholder for future descriptor conflict heuristic
 
-      if (decision.challenge && decision.lowerBand !== undefined && decision.higherBand !== undefined) {
-        try {
-          const { updatedEvaluation, record } = await challengeBandBoundary(provider, {
-            task: graderInput.task,
-            essay,
-            rubric,
-            criterionEvaluation: criterionEval,
-            lowerBand: decision.lowerBand,
-            higherBand: decision.higherBand,
-          })
-          criterionEval = updatedEvaluation
-          adjudicationRecords.push(record)
-        } catch {
-          // If challenge fails, keep primary evaluation
-        }
+    const decision = shouldChallenge({
+      band: criterionEval.band,
+      confidence: confMeta?.confidence,
+      alternativeBand: confMeta?.alternativeBand,
+      evidenceSufficient,
+      descriptorConflict,
+    })
+
+    if (decision.challenge && decision.lowerBand !== undefined && decision.higherBand !== undefined) {
+      try {
+        const { updatedEvaluation, record } = await challengeBandBoundary(provider, {
+          task: graderInput.task,
+          essay,
+          rubric,
+          criterionEvaluation: criterionEval,
+          lowerBand: decision.lowerBand,
+          higherBand: decision.higherBand,
+        })
+        criterionEval = updatedEvaluation
+        adjudicationRecords.push(record)
+      } catch {
+        // If challenge fails, keep primary evaluation
       }
     }
 
-    finalCriteria.push(criterionEval)
+    finalCriteria.push({ ...criterionEval, reliabilityScore: decision.reliabilityScore })
   }
 
   // 4. Deterministic aggregation

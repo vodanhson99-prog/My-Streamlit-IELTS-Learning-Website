@@ -66,6 +66,11 @@ export interface PipelineMetrics {
   annotationResolutionRate: number | null
   challengerTriggerRate: number | null
   challengerOverturnRate: number | null
+  challengerAgreementRate: number | null
+}
+
+export interface StabilityMetrics {
+  runToRunVariance: number
 }
 
 export interface BenchmarkReport {
@@ -74,4 +79,5 @@ export interface BenchmarkReport {
   overall: ScoreMetrics
   criteria: Record<string, ScoreMetrics>
   pipeline: PipelineMetrics
+  stability?: StabilityMetrics
 }

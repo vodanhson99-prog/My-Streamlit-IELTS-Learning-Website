@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { AIProvider } from "../../src/lib/ai/contracts"
 import { challengeBandBoundary } from "../../src/lib/ielts-evaluation/adjudication/challenger"
+import { shouldChallenge } from "../../src/lib/ielts-evaluation/adjudication/should-challenge"
 import type { CriterionEvaluation } from "../../src/lib/ielts-evaluation/contracts"
 import { IELTS_TASK2_RUBRIC } from "../../src/lib/ielts-evaluation/rubric/task2-v2023"
 
@@ -17,6 +18,20 @@ const mockEvaluation: CriterionEvaluation = {
   nextBandBlockers: ["ideas need development"],
   annotationCandidates: [{ quote: "some quote", label: "addresses-prompt", rationale: "relevant" }],
 }
+
+describe("shouldChallenge", () => {
+  it("challenges when evidence is insufficient", () => {
+    expect(shouldChallenge({ band: 6, evidenceSufficient: false })).toMatchObject({ challenge: true })
+  })
+
+  it("challenges when descriptor conflict is detected", () => {
+    expect(shouldChallenge({ band: 6, descriptorConflict: true })).toMatchObject({ challenge: true })
+  })
+
+  it("does not challenge when confidence is low but objective signals exist", () => {
+    expect(shouldChallenge({ band: 6, confidence: 0.4, evidenceSufficient: true, descriptorConflict: false })).toMatchObject({ challenge: false })
+  })
+})
 
 describe("challengeBandBoundary", () => {
   it("confirms primary band when provider confirms", async () => {

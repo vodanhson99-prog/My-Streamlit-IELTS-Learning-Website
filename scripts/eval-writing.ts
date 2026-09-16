@@ -32,6 +32,7 @@ export interface EvaluationComparison {
   annotationTotal?: number
   challengerTriggered?: boolean
   challengerOverturned?: boolean
+  challengerAgreedWithReference?: boolean
 }
 
 function round1(value: number): number {
@@ -209,6 +210,7 @@ export function buildBenchmarkReport(
   let challengerTriggered = 0
   let challengerOverturned = 0
   let challengerObserved = 0
+  let challengerAgreedWithReferenceCount = 0
 
   for (const item of comparisons) {
     if (item.annotationTotal !== undefined) {
@@ -220,6 +222,7 @@ export function buildBenchmarkReport(
       if (item.challengerTriggered) {
         challengerTriggered += 1
         if (item.challengerOverturned) challengerOverturned += 1
+        if (item.challengerAgreedWithReference) challengerAgreedWithReferenceCount += 1
       }
     }
   }
@@ -231,6 +234,7 @@ export function buildBenchmarkReport(
     annotationResolutionRate: annotationTotal === 0 ? null : round1((annotationResolved / annotationTotal) * 100),
     challengerTriggerRate: challengerObserved === 0 ? null : round1((challengerTriggered / challengerObserved) * 100),
     challengerOverturnRate: challengerTriggered === 0 ? null : round1((challengerOverturned / challengerTriggered) * 100),
+    challengerAgreementRate: challengerTriggered === 0 ? null : round1((challengerAgreedWithReferenceCount / challengerTriggered) * 100),
   }
 
   return {
@@ -277,6 +281,9 @@ export function formatBenchmarkReport(report: BenchmarkReport): string {
   }
   if (report.pipeline.challengerOverturnRate !== null) {
     lines.push(`Challenger overturn rate: ${report.pipeline.challengerOverturnRate}%`)
+  }
+  if (report.pipeline.challengerAgreementRate !== null) {
+    lines.push(`Challenger agreement rate: ${report.pipeline.challengerAgreementRate}%`)
   }
 
   return lines.join("\n")
@@ -438,6 +445,7 @@ async function runLiveEvaluation(cases: EvalCase[]): Promise<EvaluationCompariso
 
       const pred = evalResult.overallBand
       const adjudicationRecords = "adjudicationRecords" in evalResult ? evalResult.adjudicationRecords : []
+      const refCriteria = extractReferenceCriteria(c)
       comparisons.push({
         caseId: c.id,
         taskType: c.taskType,
@@ -447,11 +455,18 @@ async function runLiveEvaluation(cases: EvalCase[]): Promise<EvaluationCompariso
         status: "locked",
         diff: round2(pred - c.groundTruth.overallBand),
         predictedCriteria: extractPredictedCriteria(evalResult.criteria),
-        referenceCriteria: extractReferenceCriteria(c),
+        referenceCriteria: refCriteria,
         challengerTriggered: adjudicationRecords.length > 0,
         challengerOverturned: adjudicationRecords.some((record) => {
           const decision = (record as { decision?: string }).decision
           return decision === "overturned"
+        }),
+        challengerAgreedWithReference: adjudicationRecords.length > 0 && adjudicationRecords.every((record) => {
+          const rec = record as { criterionId: string, challengedBand: number, decision: string, originalBand: number }
+          const target = refCriteria[rec.criterionId]
+          if (target === undefined) return false
+          const finalBand = rec.decision === "overturned" ? rec.challengedBand : rec.originalBand
+          return finalBand === target
         }),
       })
     } catch (err: unknown) {

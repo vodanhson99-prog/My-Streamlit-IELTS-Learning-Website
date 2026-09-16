@@ -151,6 +151,9 @@ describe("Offline Evaluation Harness", () => {
         diff: 0,
         predictedCriteria: { lexicalResource: 6 },
         referenceCriteria: { lexicalResource: 6 },
+        challengerTriggered: true,
+        challengerOverturned: true,
+        challengerAgreedWithReference: true,
       },
       {
         caseId: "fail",
@@ -170,6 +173,9 @@ describe("Offline Evaluation Harness", () => {
     expect(report.overall.exactMatchPct).toBe(100)
     expect(report.criteria.lexicalResource?.exactMatchPct).toBe(100)
     expect(report.pipeline.invalidOutputRate).toBe(50)
+    expect(report.pipeline.challengerTriggerRate).toBe(100)
+    expect(report.pipeline.challengerOverturnRate).toBe(100)
+    expect(report.pipeline.challengerAgreementRate).toBe(100)
   })
 
   it("formats a readable offline report", () => {
