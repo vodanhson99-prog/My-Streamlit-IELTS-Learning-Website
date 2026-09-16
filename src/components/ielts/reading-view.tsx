@@ -209,8 +209,11 @@ export function ReadingView({
     const band = rawScoreToIeltsBand(correctCount, totalQuestions, "reading")
     const outcome = { score: correctCount, total: totalQuestions, band }
     setIsSubmitted(true)
-    clearPracticeSession("reading", test.slug)
-    onComplete(outcome.score, outcome.total, band)
+    try {
+      onComplete(outcome.score, outcome.total, band)
+    } finally {
+      clearPracticeSession("reading", test.slug)
+    }
   }
 
   // Save session upon answer changes
@@ -247,7 +250,7 @@ export function ReadingView({
       testId: test.id,
       title: test.title,
       startedAt: new Date().toISOString(),
-      expiresAt,
+      expiresAt: exp,
       durationMinutes: test.durationMinutes || 60,
       reading: { answers: {} },
     })

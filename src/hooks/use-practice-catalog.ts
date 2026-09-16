@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { PracticeTest, SkillType, generateTitleSlug } from "@/lib/ielts"
+import { createCachedEnvelope, parseCachedEnvelope } from "@/lib/practice-detail-cache"
 import { getSelectedSlug } from "@/lib/practice-session"
 
 const CATALOG_STORAGE_KEY = "ielts_practice_catalog_cache_v2"
@@ -38,8 +39,7 @@ function detailKey(skill: SkillType, slug: string) {
 function readCachedDetail(skill: SkillType, slug: string): PracticeTest | null {
   try {
     const raw = sessionStorage.getItem(detailKey(skill, slug))
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as PracticeTest
+    const parsed = parseCachedEnvelope<PracticeTest>(raw)
     return parsed?.slug && isUsableReadingDetail(parsed) ? parsed : null
   } catch {
     return null
@@ -48,8 +48,9 @@ function readCachedDetail(skill: SkillType, slug: string): PracticeTest | null {
 
 function isUsableReadingDetail(test: PracticeTest): boolean {
   return test.skill !== "reading" || test.sections.some((section) => {
+    const hasBlocks = (section.passageBlocks?.length ?? 0) > 0
     const passage = section.passageText?.trim() || ""
-    return passage.length > 100 && !/^Part\s+\d+$/i.test(passage)
+    return hasBlocks || (passage.length > 100 && !/^Part\s+\d+$/i.test(passage))
   })
 }
 
@@ -63,7 +64,7 @@ function removeLegacyDetail(skill: SkillType, slug: string) {
 
 function writeCachedDetail(test: PracticeTest) {
   try {
-    sessionStorage.setItem(detailKey(test.skill, test.slug), JSON.stringify(test))
+    sessionStorage.setItem(detailKey(test.skill, test.slug), createCachedEnvelope(test))
   } catch {
     // Ignore quota / private mode.
   }

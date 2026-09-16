@@ -130,6 +130,16 @@ export async function GET(request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Upstream test contains no parseable questions." }, { status: 422 })
     }
 
+    const hasAnyAnswers = test.sections.some((section) =>
+      section.questions.some((q) => q.answer !== "" && q.answer !== undefined && (!Array.isArray(q.answer) || q.answer.length > 0))
+    )
+
+    if (!hasAnyAnswers) {
+      const fallback = findFallback(quizId)
+      if (fallback) return NextResponse.json({ source: "fallback", test: fallback })
+      return NextResponse.json({ error: "Upstream test answer keys are unavailable." }, { status: 422 })
+    }
+
     return NextResponse.json({ source: "live", test })
   } catch (error) {
     if (error instanceof IotSessionError && (error.code === "missing" || error.code === "expired")) {
