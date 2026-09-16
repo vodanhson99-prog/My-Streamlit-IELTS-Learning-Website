@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { ArrowLeft, BookOpen, Compass, History, PenTool, Volume2 } from "lucide-react"
+import { ArrowLeft, BookOpen, Compass, History, PenTool, Settings, Volume2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ModeToggle } from "@/components/mode-toggle"
 
@@ -14,10 +14,12 @@ const NAV_ITEMS = [
   { href: "/reading", label: "Reading", icon: BookOpen },
   { href: "/writing", label: "Writing", icon: PenTool },
   { href: "/progress", label: "Review", icon: History },
+  { href: "/settings", label: "Settings", icon: Settings },
 ]
 
 export function PracticeNavbar() {
-  const pathname = usePathname()
+  const rawPathname = usePathname()
+  const pathname = rawPathname || "/"
   const navRef = useRef<HTMLElement>(null)
   const itemRefs = useRef<Map<string, HTMLAnchorElement>>(new Map())
   const [indicator, setIndicator] = useState<{ left: number; width: number; ready: boolean }>({
