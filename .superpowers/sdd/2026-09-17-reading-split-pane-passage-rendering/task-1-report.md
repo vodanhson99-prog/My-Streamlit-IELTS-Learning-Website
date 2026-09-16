@@ -12,7 +12,7 @@ Verification:
 - `pnpm exec tsc --noEmit` — passed.
 - `pnpm exec vitest run tests/reading-parser.test.ts` — expected Task 1 behavior failure: 2 tests fail because parser population belongs to Task 2; 5 existing tests pass.
 
-Commit: pending
+Commit: `007f809`
 
 Concerns:
 - Test fixture intentionally fails until Task 2 populates `passageBlocks`.
