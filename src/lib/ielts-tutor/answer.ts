@@ -1,8 +1,12 @@
 import { z } from "zod"
 import type { AIProvider, StructuredAiRequest } from "../ai/contracts"
-import { completeStructured } from "../ai/provider"
+import { completeStructured, formatStructuredFailure, isTransientAIError, classifyStructuredFailure } from "../ai/provider"
 import { wrapUntrustedContent } from "../ielts-evaluation/prompts/shared"
 import type { TutorRequestInput, TutorResponse } from "./contracts"
+
+export interface AskTutorOptions {
+  readonly retryDelayMs?: number
+}
 
 const tutorResponseSchema = z.object({
   reply: z.string().trim().min(1),
@@ -13,6 +17,7 @@ const tutorResponseSchema = z.object({
 export async function askTutor(
   provider: AIProvider,
   input: TutorRequestInput,
+  options: AskTutorOptions = {},
 ): Promise<TutorResponse> {
   if (!input.evaluation.locked) {
     throw new Error("Tutor cannot discuss unlocked or unconfirmed evaluations.")
@@ -76,5 +81,40 @@ Student question: ${input.userMessage}`
     parse: (raw) => tutorResponseSchema.parse(raw),
   }
 
-  return (await completeStructured(provider, request)).data
+  const retryDelayMs = options.retryDelayMs ?? 75
+  const startTime = Date.now()
+
+  try {
+    const res = await completeStructured(provider, request)
+    return res.data
+  } catch (firstErr) {
+    const elapsedMs = Date.now() - startTime
+    const failureKind = classifyStructuredFailure(firstErr)
+    const safeMsg = formatStructuredFailure(firstErr)
+    console.warn(
+      `[writing-tutor][attempt=1] failureKind=${failureKind} msg="${safeMsg}" elapsedMs=${elapsedMs}`,
+    )
+
+    if (!isTransientAIError(firstErr)) {
+      throw firstErr
+    }
+
+    if (retryDelayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs))
+    }
+
+    const retryStartTime = Date.now()
+    try {
+      const res = await completeStructured(provider, request)
+      return res.data
+    } catch (retryErr) {
+      const retryElapsedMs = Date.now() - retryStartTime
+      const retryFailureKind = classifyStructuredFailure(retryErr)
+      const retrySafeMsg = formatStructuredFailure(retryErr)
+      console.warn(
+        `[writing-tutor][attempt=2] failureKind=${retryFailureKind} msg="${retrySafeMsg}" elapsedMs=${retryElapsedMs}`,
+      )
+      throw retryErr
+    }
+  }
 }

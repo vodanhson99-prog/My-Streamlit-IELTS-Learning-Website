@@ -17,6 +17,19 @@ export function classifyStructuredFailure(error: unknown): StructuredFailureKind
   return "unknown"
 }
 
+export function isTransientAIError(error: unknown): boolean {
+  if (error instanceof AIProviderError) {
+    if (error.code === "timeout" || error.code === "network" || error.code === "rate_limited") {
+      return true
+    }
+    if (error.status !== undefined && (error.status === 429 || error.status >= 500)) {
+      return true
+    }
+    return error.retryable
+  }
+  return false
+}
+
 const chatCompletionsResponseSchema = z.object({
   choices: z.array(z.object({ message: z.object({ content: z.string().min(1) }) })).min(1),
 })
@@ -24,7 +37,31 @@ const chatCompletionsResponseSchema = z.object({
 function parseJsonText(text: string): unknown {
   const trimmed = text.trim()
   const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)
-  return JSON.parse(fenced?.[1] ?? trimmed)
+  const candidate = fenced?.[1] ?? trimmed
+  try {
+    return JSON.parse(candidate)
+  } catch {
+    const start = candidate.indexOf("{")
+    if (start >= 0) {
+      let depth = 0
+      let inString = false
+      let escaped = false
+      for (let index = start; index < candidate.length; index += 1) {
+        const char = candidate[index]
+        if (inString) {
+          if (escaped) escaped = false
+          else if (char === "\\") escaped = true
+          else if (char === '"') inString = false
+          continue
+        }
+        if (char === '"') inString = true
+        else if (char === "{") depth += 1
+        else if (char === "}" && --depth === 0) return JSON.parse(candidate.slice(start, index + 1))
+      }
+    }
+    const end = candidate.lastIndexOf("}")
+    throw new SyntaxError(`Provider returned malformed JSON (length=${candidate.length}, objectStart=${start}, objectEnd=${end}).`)
+  }
 }
 
 function sanitizeProviderError(error: unknown): string {
@@ -74,6 +111,22 @@ export class AIProviderError extends Error {
   }
 }
 
+/** Return bounded, non-sensitive diagnostics for structured-output failures. */
+export function formatStructuredFailure(error: unknown): string {
+  if (error instanceof AIProviderError) return error.message
+  if (error instanceof ZodError) {
+    const issues = error.issues.slice(0, 3).map((issue) => {
+      const path = issue.path.length > 0 ? issue.path.join(".") : "output"
+      return `${path}: ${issue.message}`
+    })
+    return issues.length > 0
+      ? `Structured output schema mismatch (${issues.join("; ")}).`
+      : "Structured output schema mismatch."
+  }
+  if (error instanceof SyntaxError) return error.message.slice(0, 180)
+  return "Structured evaluation failed."
+}
+
 export interface AIProviderOptions {
   readonly apiKey?: string
   readonly apiUrl?: string
@@ -84,7 +137,12 @@ export interface AIProviderOptions {
 
 function httpError(status: number): AIProviderError {
   if (status === 401 || status === 403) {
-    return new AIProviderError("authentication", "AI provider authentication failed.", false, status)
+    return new AIProviderError(
+      "authentication",
+      "AI provider authentication failed. Verify that AI_API_KEY is a valid key for the configured AI_API_URL (remote 9Router instances require a 9Router API key).",
+      false,
+      status,
+    )
   }
   if (status === 429) {
     return new AIProviderError("rate_limited", "AI provider rate limit exceeded.", true, status)
@@ -117,6 +175,7 @@ export function createAIProvider(options: AIProviderOptions = {}): AIProvider {
               messages: request.messages,
               max_tokens: request.maxTokens,
               temperature: request.temperature,
+              ...(request.responseFormat ? { response_format: { type: request.responseFormat } } : {}),
               stream: false,
             }),
             signal: AbortSignal.timeout(timeoutMs),
@@ -165,6 +224,7 @@ export async function completeStructured<T>(
     ],
     maxTokens: request.maxTokens,
     temperature: request.temperature,
+    responseFormat: "json_object",
   })
   return { data: request.parse(parseJsonText(result.text)), provider: result.provider }
 }

@@ -32,6 +32,8 @@ export interface AICompletionRequest {
   readonly messages: readonly AIMessage[]
   readonly maxTokens: number
   readonly temperature: number
+  /** OpenAI-compatible JSON mode. Providers that do not support it may ignore it. */
+  readonly responseFormat?: "json_object"
 }
 
 export interface AICompletionResult {
@@ -41,6 +43,13 @@ export interface AICompletionResult {
 
 export interface AIProvider {
   complete(request: AICompletionRequest): Promise<AICompletionResult>
+}
+
+export interface TutorDiagnosticDetails {
+  readonly failureKind: StructuredFailureKind | AIProviderErrorCode | "unknown"
+  readonly retryCount: number
+  readonly latencyMs: number
+  readonly status?: number
 }
 
 export interface StructuredAiRequest<T> {

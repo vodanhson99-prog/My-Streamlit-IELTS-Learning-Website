@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { requestGroq } from "../../src/lib/ai"
-import { AIProviderError, completeStructured, createGroqProvider, classifyStructuredFailure } from "../../src/lib/ai/provider"
+import { AIProviderError, completeStructured, createGroqProvider, classifyStructuredFailure, isTransientAIError } from "../../src/lib/ai/provider"
 import { ZodError } from "zod"
 
 const request = {
@@ -30,6 +30,24 @@ describe("structured failure classification", () => {
     expect(classifyStructuredFailure(new SyntaxError("bad JSON"))).toBe("malformed-json")
     expect(classifyStructuredFailure(new ZodError([]))).toBe("schema-invalid")
     expect(classifyStructuredFailure(new AIProviderError("timeout", "timeout", true))).toBe("provider-timeout")
+  })
+})
+
+describe("isTransientAIError", () => {
+  it("identifies transient vs non-transient errors correctly", () => {
+    expect(isTransientAIError(new AIProviderError("timeout", "timeout", true, 504))).toBe(true)
+    expect(isTransientAIError(new AIProviderError("network", "network", true))).toBe(true)
+    expect(isTransientAIError(new AIProviderError("rate_limited", "rate_limited", true, 429))).toBe(true)
+    expect(isTransientAIError(new AIProviderError("upstream", "server error", true, 500))).toBe(true)
+    expect(isTransientAIError(new AIProviderError("upstream", "service unavailable", true, 503))).toBe(true)
+
+    expect(isTransientAIError(new AIProviderError("authentication", "unauthorized", false, 401))).toBe(false)
+    expect(isTransientAIError(new AIProviderError("authentication", "forbidden", false, 403))).toBe(false)
+    expect(isTransientAIError(new AIProviderError("upstream", "bad request", false, 400))).toBe(false)
+    expect(isTransientAIError(new AIProviderError("configuration", "missing key", false))).toBe(false)
+    expect(isTransientAIError(new ZodError([]))).toBe(false)
+    expect(isTransientAIError(new SyntaxError("unexpected token"))).toBe(false)
+    expect(isTransientAIError(new Error("generic error"))).toBe(false)
   })
 })
 
@@ -122,6 +140,7 @@ describe("completeStructured", () => {
       messages: [{ role: "system", content: "system" }, { role: "user", content: "user" }],
       temperature: 0.1,
       maxTokens: 200,
+      responseFormat: "json_object",
     })
     expect(parse).toHaveBeenCalledWith({ band: 7 })
   })
@@ -139,6 +158,42 @@ describe("completeStructured", () => {
       schema: {},
       parse: (raw) => raw,
     })).resolves.toEqual({ data: { band: 7 }, provider: "groq" })
+  })
+
+  it("extracts one JSON object surrounded by provider commentary", async () => {
+    const provider = {
+      complete: vi.fn(async () => ({
+        text: 'Here is the requested result:\n{"band":7}\nEvaluation complete.',
+        provider: "openai-compatible" as const,
+      })),
+    }
+
+    await expect(completeStructured(provider, {
+      system: "system",
+      user: "user",
+      temperature: 0.1,
+      maxTokens: 200,
+      schema: {},
+      parse: (raw) => raw,
+    })).resolves.toEqual({ data: { band: 7 }, provider: "openai-compatible" })
+  })
+
+  it("extracts the first complete JSON object when a provider appends extra text", async () => {
+    const provider = {
+      complete: vi.fn(async () => ({
+        text: '{"band":7} trailing provider text {"band":6}',
+        provider: "openai-compatible" as const,
+      })),
+    }
+
+    await expect(completeStructured(provider, {
+      system: "system",
+      user: "user",
+      temperature: 0.1,
+      maxTokens: 200,
+      schema: {},
+      parse: (raw) => raw,
+    })).resolves.toEqual({ data: { band: 7 }, provider: "openai-compatible" })
   })
 
   it("rejects malformed structured JSON", async () => {
