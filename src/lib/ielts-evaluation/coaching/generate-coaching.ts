@@ -1,44 +1,16 @@
 import type {
+  CoachingPriority,
+  CoachingPriorityFactors,
   CriterionEvaluation,
+  GrammarSuggestion,
   IeltsHalfBand,
   LockedTask2Evaluation,
   ResolvedAnnotation,
+  VocabularySuggestion,
+  WritingCoaching,
 } from "../contracts"
+export type { CoachingPriority, CoachingPriorityFactors, GrammarSuggestion, VocabularySuggestion, WritingCoaching }
 import type { LockedTask1Evaluation, Task1CriterionEvaluation } from "../task1/contracts"
-
-export interface CoachingPriority {
-  readonly criterionId: string
-  readonly title: string
-  readonly rationale: string
-  readonly actionItem: string
-}
-
-export interface VocabularySuggestion {
-  readonly original: string
-  readonly suggested: string
-  readonly contextSentence: string
-  readonly reason: string
-}
-
-export interface GrammarSuggestion {
-  readonly issue: string
-  readonly original: string
-  readonly correction: string
-  readonly ruleExplanation: string
-}
-
-export interface WritingCoaching {
-  readonly strengths: readonly string[]
-  readonly priorities: readonly CoachingPriority[]
-  readonly nextBandBlockers: readonly string[]
-  readonly vocabularySuggestions: readonly VocabularySuggestion[]
-  readonly grammarSuggestions: readonly GrammarSuggestion[]
-  readonly targetBandPlan?: {
-    readonly currentBand: IeltsHalfBand
-    readonly targetBand: IeltsHalfBand
-    readonly keyMilestones: readonly string[]
-  }
-}
 
 type AnyLockedEvaluation = LockedTask2Evaluation | LockedTask1Evaluation
 
@@ -63,24 +35,35 @@ export function generateCoaching(
     blockers.push(...c.nextBandBlockers)
   }
 
-  // ponytail: until occurrence/severity metadata exists, band gap and observed limitations approximate learning impact.
-  const priorityScore = (criterion: CriterionEvaluation | Task1CriterionEvaluation) => {
+  const getPriorityScoreAndFactors = (criterion: CriterionEvaluation | Task1CriterionEvaluation): { score: number; factors: CoachingPriorityFactors } => {
     const bandGap = 9 - criterion.band
-    const errorFrequency = Math.max(1, criterion.limitingEvidence.length)
+    const annotationCount = resolvedAnnotations.filter(
+      (a) => a.criterionId === criterion.criterionId && a.status === "resolved",
+    ).length
+    // ponytail: use explicit annotation count when available, fallback to limiting evidence length
+    const errorFrequency = annotationCount > 0 ? annotationCount : Math.max(1, criterion.limitingEvidence.length)
     const severity = criterion.band <= 5 ? 2 : criterion.band <= 7 ? 1.5 : 1
     const recurrence = Math.max(1, new Set(criterion.limitingEvidence.map((item) => item.rationale)).size)
     const learningImpact = criterion.nextBandBlockers.length > 0 ? 2 : 1
-    return bandGap * errorFrequency * severity * recurrence * learningImpact
+    
+    const totalScore = bandGap * errorFrequency * severity * recurrence * learningImpact
+    return {
+      score: totalScore,
+      factors: { bandGap, errorFrequency, severity, recurrence, learningImpact, totalScore },
+    }
   }
 
-  const sortedByPriority = criteria
+  const scoredCriteria = criteria
     .filter((criterion) => criterion.nextBandBlockers.length > 0 || criterion.limitingEvidence.length > 0)
-    .sort((a, b) => priorityScore(b) - priorityScore(a))
-  const priorities: CoachingPriority[] = sortedByPriority.slice(0, 3).map((c) => ({
+    .map((criterion) => ({ criterion, ...getPriorityScoreAndFactors(criterion) }))
+    .sort((a, b) => b.score - a.score)
+
+  const priorities: CoachingPriority[] = scoredCriteria.slice(0, 3).map(({ criterion: c, factors }) => ({
     criterionId: c.criterionId,
     title: `Improve ${c.criterionId} (Band ${c.band})`,
     rationale: c.nextBandBlockers[0] || c.limitingEvidence[0]?.rationale || `Current performance is limited by descriptor ${c.descriptorId}`,
     actionItem: `Focus on overcoming: ${c.nextBandBlockers[0] || c.limitingEvidence[0]?.rationale || "accuracy and consistency"} in your next draft.`,
+    factors,
   }))
 
   // 3. Derive contextual vocabulary suggestions from resolved lexical annotations
@@ -106,12 +89,12 @@ export function generateCoaching(
   }))
 
   let targetBandPlan: WritingCoaching["targetBandPlan"] = undefined
-  if (targetBand && targetBand > lockedEval.overallBand && sortedByPriority.length > 0) {
+  if (targetBand && targetBand > lockedEval.overallBand && scoredCriteria.length > 0) {
     targetBandPlan = {
       currentBand: lockedEval.overallBand,
       targetBand,
       keyMilestones: [
-        `Elevate ${sortedByPriority[0].criterionId} from Band ${sortedByPriority[0].band} to ${Math.min(9, sortedByPriority[0].band + 1)}`,
+        `Elevate ${scoredCriteria[0].criterion.criterionId} from Band ${scoredCriteria[0].criterion.band} to ${Math.min(9, scoredCriteria[0].criterion.band + 1)}`,
         `Address priority blockers: ${blockers.slice(0, 2).join("; ")}`,
       ],
     }

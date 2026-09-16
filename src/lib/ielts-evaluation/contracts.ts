@@ -124,6 +124,50 @@ export interface FailedTask2Evaluation {
 
 export type Task2EvaluationResult = LockedTask2Evaluation | FailedTask2Evaluation
 
+export interface CoachingPriorityFactors {
+  readonly bandGap: number
+  readonly errorFrequency: number
+  readonly severity: number
+  readonly recurrence: number
+  readonly learningImpact: number
+  readonly totalScore: number
+}
+
+export interface CoachingPriority {
+  readonly criterionId: string
+  readonly title: string
+  readonly rationale: string
+  readonly actionItem: string
+  readonly factors?: CoachingPriorityFactors
+}
+
+export interface VocabularySuggestion {
+  readonly original: string
+  readonly suggested: string
+  readonly contextSentence: string
+  readonly reason: string
+}
+
+export interface GrammarSuggestion {
+  readonly issue: string
+  readonly original: string
+  readonly correction: string
+  readonly ruleExplanation: string
+}
+
+export interface WritingCoaching {
+  readonly strengths: readonly string[]
+  readonly priorities: readonly CoachingPriority[]
+  readonly nextBandBlockers: readonly string[]
+  readonly vocabularySuggestions: readonly VocabularySuggestion[]
+  readonly grammarSuggestions: readonly GrammarSuggestion[]
+  readonly targetBandPlan?: {
+    readonly currentBand: IeltsHalfBand
+    readonly targetBand: IeltsHalfBand
+    readonly keyMilestones: readonly string[]
+  }
+}
+
 export interface CombinedWritingScore {
   readonly task1CriterionMean: number
   readonly task2CriterionMean: number

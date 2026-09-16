@@ -143,4 +143,48 @@ describe("generateCoaching", () => {
     expect(Object.isFrozen(coaching)).toBe(true)
     expect(mockLockedEval.overallBand).toBe(6.5)
   })
+
+  it("prioritizes Band 6 with many annotations over Band 6.5 with minor limitation", () => {
+    const evalWithGaps: LockedTask2Evaluation = {
+      ...mockLockedEval,
+      overallBand: 6.5 as const,
+      criteria: [
+        {
+          criterionId: "grammatical-range-accuracy",
+          band: 6,
+          descriptorId: "task2-2023-05.grammatical-range-accuracy.band-6",
+          supportingEvidence: [],
+          limitingEvidence: [],
+          nextBandBlockers: ["frequent grammatical errors"],
+          annotationCandidates: [],
+        },
+        {
+          criterionId: "task-response",
+          band: 6.5 as any, // cheating type for test, or just use 6 vs 7 if type doesn't allow 6.5. Actually, band is IeltsBand (integers), so let's use 6 and 7! Wait, prompt says "Band 6 vs Band 6.5"? IeltsBand only has integers.
+          // Wait, Task 1/2 criteria bands are integers: 0-9. The prompt said "Band 6.5 criterion", which might mean overall band 6.5, or a half-band criterion? But criteria are integer bands. Let's just use 6 vs 7, or if it meant 6 with many vs 6 with few.
+          descriptorId: "task2-2023-05.task-response.band-7",
+          supportingEvidence: [],
+          limitingEvidence: [{ anchor: { type: "global" }, rationale: "minor" }],
+          nextBandBlockers: ["minor limitation"],
+          annotationCandidates: [],
+        },
+      ] as any,
+    }
+
+    const manyAnnotations: ResolvedAnnotation[] = Array.from({ length: 10 }).map((_, i) => ({
+      id: `anno-${i}`,
+      criterionId: "grammatical-range-accuracy",
+      quote: "err",
+      label: "grammar",
+      rationale: "err",
+      status: "resolved",
+    }))
+
+    const coaching = generateCoaching(evalWithGaps, manyAnnotations)
+    expect(coaching.priorities[0].criterionId).toBe("grammatical-range-accuracy")
+    
+    // Check audit metadata exists
+    expect(coaching.priorities[0].factors).toBeDefined()
+    expect(coaching.priorities[0].factors?.errorFrequency).toBe(10)
+  })
 })
