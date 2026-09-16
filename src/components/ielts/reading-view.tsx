@@ -418,9 +418,80 @@ export function ReadingView({
             ref={articleRef}
             onMouseUp={handlePassageSelect}
             onTouchEnd={handlePassageSelect}
-            className={`prose prose-sm dark:prose-invert max-w-none text-foreground/90 font-serif leading-relaxed whitespace-pre-line lg:max-h-[calc(100vh-190px)] lg:overflow-y-auto pr-1 transition-all ${FONT_SIZES[fontSize].class}`}
+            className={`prose prose-sm dark:prose-invert max-w-none text-foreground/90 font-serif leading-relaxed lg:max-h-[calc(100vh-190px)] lg:overflow-y-auto pr-1 transition-all ${FONT_SIZES[fontSize].class}`}
           >
-            {currentSection?.passageText || "No text available for this section."}
+            {currentSection?.passageBlocks && currentSection.passageBlocks.length > 0 ? (
+              currentSection.passageBlocks.map((block, idx) => {
+                if (block.type === "heading") {
+                  return (
+                    <h3
+                      key={idx}
+                      className="text-base sm:text-lg font-bold font-sans text-foreground mt-4 mb-2 first:mt-0"
+                    >
+                      {block.text}
+                    </h3>
+                  )
+                }
+                if (block.type === "image" && block.src) {
+                  return (
+                    <figure key={idx} className="my-4 flex flex-col items-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={block.src}
+                        alt={block.alt || "Reading passage illustration"}
+                        loading="lazy"
+                        className="max-h-[380px] w-auto max-w-full rounded-[2px] border border-border bg-background object-contain shadow-2xs"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none"
+                        }}
+                      />
+                      {block.alt && (
+                        <figcaption className="text-xs text-muted-foreground mt-1 text-center font-sans">
+                          {block.alt}
+                        </figcaption>
+                      )}
+                    </figure>
+                  )
+                }
+                if (block.type === "list" && block.items?.length) {
+                  return (
+                    <ul key={idx} className="list-disc pl-5 my-3 space-y-1">
+                      {block.items.map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+                  )
+                }
+                if (block.type === "table" && block.rows?.length) {
+                  return (
+                    <div key={idx} className="overflow-x-auto my-4 rounded-[2px] border border-border">
+                      <table className="w-full text-left text-xs sm:text-sm font-sans border-collapse">
+                        <tbody>
+                          {block.rows.map((row, rIdx) => (
+                            <tr key={rIdx} className={rIdx === 0 ? "bg-muted font-medium" : "border-t border-border"}>
+                              {row.map((cell, cIdx) => (
+                                <td key={cIdx} className="p-2 border-r border-border last:border-r-0">
+                                  {cell}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )
+                }
+                return (
+                  <p key={idx} className="mb-4 last:mb-0">
+                    {block.text}
+                  </p>
+                )
+              })
+            ) : (
+              <p className="whitespace-pre-line">
+                {currentSection?.passageText || "No text available for this section."}
+              </p>
+            )}
           </article>
         </section>
 

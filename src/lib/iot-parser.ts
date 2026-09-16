@@ -322,35 +322,6 @@ export function extractReadingPassage(panelHtml: string): string | undefined {
   return cleanText(passageMatch[1]) || undefined
 }
 
-function extractReadingPassages(html: string): string[] {
-  const containers = extractPassageContainerHtml(html)
-  if (containers.length > 0) {
-    return containers
-      .map((c) => {
-        const blocks = extractReadingPassageBlocks(c)
-        if (blocks.length > 0) {
-          const text = blocks
-            .filter((b) => b.type === "heading" || b.type === "paragraph" || b.type === "list")
-            .map((b) => (b.type === "list" ? (b.items || []).join(" ") : b.text || ""))
-            .filter(Boolean)
-            .join(" ")
-          if (text) return text
-        }
-        return cleanText(c)
-      })
-      .filter(Boolean)
-  }
-  return [...html.matchAll(READING_PASSAGE_RE)]
-    .map((match) => cleanText(match[1]))
-    .filter(Boolean)
-}
-
-function extractAllRawPassageHtml(html: string): string[] {
-  const containers = extractPassageContainerHtml(html)
-  if (containers.length > 0) return containers
-  return [...html.matchAll(READING_PASSAGE_RE)].map((m) => m[1]).filter(Boolean)
-}
-
 interface UpstreamPassageEntity {
   rawHtml: string
   title?: string
