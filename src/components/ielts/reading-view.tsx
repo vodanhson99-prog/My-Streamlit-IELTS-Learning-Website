@@ -1,9 +1,16 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Maximize2, Minimize2, Highlighter, Eraser, X } from "lucide-react"
+import { Maximize2, Minimize2, Highlighter, Eraser, X, GripVertical, Columns2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PracticeTest, answersMatch, hasAnswer, rawScoreToIeltsBand, selectedOptionsMatch } from "@/lib/ielts"
+import {
+  clampPaneWidth,
+  parseStoredPaneWidth,
+  MIN_PANE_WIDTH,
+  MAX_PANE_WIDTH,
+  DEFAULT_PANE_WIDTH,
+} from "@/lib/reading-layout"
 import { SessionHeader } from "./session-header"
 import { ChoiceQuestion } from "./choice-question"
 import { InlineQuestionPrompt } from "./inline-question-prompt"
@@ -38,12 +45,23 @@ export function ReadingView({
   const totalQuestions = allQuestions.length
 
   const articleRef = useRef<HTMLElement | null>(null)
+  const containerRef = useRef<HTMLFormElement | null>(null)
   const [activePassageIndex, setActivePassageIndex] = useState<number>(0)
   const [mobileTab, setMobileTab] = useState<"passage" | "questions">("passage")
   const [isPassageExpanded, setIsPassageExpanded] = useState<boolean>(false)
   const [hasHighlights, setHasHighlights] = useState(false)
   const [selectionPopup, setSelectionPopup] = useState<{ top: number; left: number } | null>(null)
   const [reviewFilter, setReviewFilter] = useState<"all" | "mistakes">("all")
+
+  const [paneWidth, setPaneWidth] = useState<number>(() => {
+    if (typeof window === "undefined") return DEFAULT_PANE_WIDTH
+    try {
+      return parseStoredPaneWidth(localStorage.getItem("ielts_reading_pane_width"))
+    } catch {
+      return DEFAULT_PANE_WIDTH
+    }
+  })
+  const [isDragging, setIsDragging] = useState(false)
 
   const [fontSize, setFontSize] = useState<FontSizeKey>(() => {
     if (typeof window === "undefined") return "base"
@@ -248,6 +266,65 @@ export function ReadingView({
     }, 60)
   }
 
+  const updatePaneWidth = (width: number) => {
+    const clamped = clampPaneWidth(width)
+    setPaneWidth(clamped)
+    try {
+      localStorage.setItem("ielts_reading_pane_width", String(clamped))
+    } catch {
+      // Ignore storage restrictions
+    }
+  }
+
+  const handleResetPaneWidth = () => {
+    setIsPassageExpanded(false)
+    updatePaneWidth(DEFAULT_PANE_WIDTH)
+  }
+
+  const handleDividerPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDragging(true)
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+
+  const handleDividerPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging || !containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    if (rect.width <= 0) return
+    const relativeX = e.clientX - rect.left
+    const percentage = (relativeX / rect.width) * 100
+    setIsPassageExpanded(false)
+    updatePaneWidth(percentage)
+  }
+
+  const handleDividerPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDragging) {
+      setIsDragging(false)
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId)
+      } catch {
+        // Ignored
+      }
+    }
+  }
+
+  const handleDividerKeyDown = (e: React.KeyboardEvent) => {
+    setIsPassageExpanded(false)
+    if (e.key === "ArrowLeft") {
+      e.preventDefault()
+      updatePaneWidth(paneWidth - 5)
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault()
+      updatePaneWidth(paneWidth + 5)
+    } else if (e.key === "Home") {
+      e.preventDefault()
+      updatePaneWidth(MIN_PANE_WIDTH)
+    } else if (e.key === "End") {
+      e.preventDefault()
+      updatePaneWidth(MAX_PANE_WIDTH)
+    }
+  }
+
   const answeredCount = Object.keys(selectedAnswers).filter((k) => hasAnswer(selectedAnswers[k])).length
 
   const passageMistakesCount = currentQuestions.filter((q) => {
@@ -330,15 +407,23 @@ export function ReadingView({
       </div>
 
       {/* Main Worksurface: Passage & Questions */}
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <form
+        ref={containerRef}
+        onSubmit={handleSubmit}
+        className="flex flex-col lg:flex-row gap-5 lg:gap-0 items-start relative w-full"
+        style={
+          {
+            "--reading-pane-width": `${isPassageExpanded ? 75 : paneWidth}%`,
+            userSelect: isDragging ? "none" : undefined,
+          } as React.CSSProperties
+        }
+      >
         {/* Left Column: Passage */}
         <section
           aria-label="Reading passage text"
-          className={`flex flex-col gap-3 rounded-[3px] border border-border bg-card p-4 sm:p-5 lg:sticky lg:top-14 transition-all duration-300 ${
-            isPassageExpanded
-              ? "lg:col-span-8 xl:col-span-9"
-              : "lg:col-span-7"
-          } ${mobileTab === "questions" ? "hidden lg:flex" : "flex"}`}
+          className={`flex flex-col gap-3 rounded-[3px] border border-border bg-card p-4 sm:p-5 lg:sticky lg:top-14 w-full lg:w-[calc(var(--reading-pane-width)-12px)] transition-[width] duration-75 ${
+            mobileTab === "questions" ? "hidden lg:flex" : "flex"
+          }`}
         >
           {/* Passage Header Bar with Reader Tools */}
           <div className="flex items-center justify-between gap-2 border-b border-border pb-3 flex-wrap sm:flex-nowrap">
@@ -365,6 +450,18 @@ export function ReadingView({
                   <span>Clear</span>
                 </button>
               )}
+
+              {/* 50/50 Reset (Desktop only) */}
+              <button
+                type="button"
+                onClick={handleResetPaneWidth}
+                className="hidden lg:inline-flex h-6 px-1.5 rounded-[1px] font-mono text-[10px] text-muted-foreground hover:text-foreground border border-border/80 hover:border-foreground/40 items-center gap-1 transition-colors select-none"
+                title="Reset panes to 50/50"
+                aria-label="Reset panes to 50/50"
+              >
+                <Columns2 className="size-2.5" />
+                <span>50/50</span>
+              </button>
 
               {/* Font Size Zoomer */}
               <div
@@ -495,14 +592,37 @@ export function ReadingView({
           </article>
         </section>
 
+        {/* Resizable Divider (Desktop only) */}
+        <div
+          role="separator"
+          tabIndex={0}
+          aria-label="Resize reading and answering panes"
+          aria-orientation="vertical"
+          aria-valuemin={MIN_PANE_WIDTH}
+          aria-valuemax={MAX_PANE_WIDTH}
+          aria-valuenow={isPassageExpanded ? 75 : paneWidth}
+          onPointerDown={handleDividerPointerDown}
+          onPointerMove={handleDividerPointerMove}
+          onPointerUp={handleDividerPointerUp}
+          onKeyDown={handleDividerKeyDown}
+          className="hidden lg:flex flex-col items-center justify-center w-6 -mx-3 z-20 cursor-col-resize select-none group focus:outline-none focus-visible:ring-2 focus-visible:ring-ring self-stretch min-h-[550px]"
+        >
+          <div
+            className={`w-1 h-full rounded-full transition-colors ${
+              isDragging ? "bg-primary" : "bg-border group-hover:bg-primary/70"
+            }`}
+          />
+          <div className="absolute top-1/2 -translate-y-1/2 p-1 rounded-sm bg-background border border-border shadow-xs opacity-70 group-hover:opacity-100 transition-opacity">
+            <GripVertical className="size-3.5 text-muted-foreground" />
+          </div>
+        </div>
+
         {/* Right Column: Questions */}
         <section
           aria-label="Questions list"
-          className={`flex flex-col gap-4 rounded-[3px] border border-border bg-card p-4 sm:p-5 transition-all duration-300 ${
-            isPassageExpanded
-              ? "lg:col-span-4 xl:col-span-3"
-              : "lg:col-span-5"
-          } ${mobileTab === "passage" ? "hidden lg:flex" : "flex"}`}
+          className={`flex flex-col gap-4 rounded-[3px] border border-border bg-card p-4 sm:p-5 w-full lg:w-[calc(100%-var(--reading-pane-width)-12px)] transition-[width] duration-75 ${
+            mobileTab === "passage" ? "hidden lg:flex" : "flex"
+          }`}
         >
           <div className="flex items-center justify-between border-b border-border pb-3">
             <h2 className="text-sm font-semibold text-foreground">
