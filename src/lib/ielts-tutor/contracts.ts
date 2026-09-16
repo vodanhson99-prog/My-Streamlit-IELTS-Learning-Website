@@ -6,6 +6,23 @@ export interface TutorMessage {
   readonly content: string
 }
 
+export type TutorErrorKind =
+  | "invalid_request"
+  | "missing_configuration"
+  | "authentication_failed"
+  | "rate_limited"
+  | "timeout"
+  | "network_error"
+  | "invalid_response"
+  | "internal_error"
+
+export interface TutorErrorResponse {
+  readonly error: string
+  readonly kind: TutorErrorKind
+  readonly requestId: string
+  readonly retryable: boolean
+}
+
 export interface TutorRequestInput {
   readonly evaluation: LockedTask2Evaluation | LockedTask1Evaluation
   readonly essay: string
@@ -19,4 +36,5 @@ export interface TutorResponse {
   readonly reply: string
   readonly references?: readonly string[]
   readonly suggestedFollowUps?: readonly string[]
+  readonly requestId?: string
 }
