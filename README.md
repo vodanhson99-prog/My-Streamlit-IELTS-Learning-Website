@@ -23,23 +23,29 @@ Modern IELTS preparation platform built with **Next.js (App Router)**, **TypeScr
 pnpm install
 ```
 
-### 2. Configure Environment (Optional for AI Examiner)
+### 2. Configure Environment (Required for AI Writing Evaluation)
 
-Copy the environment sample and provide your Groq API key:
+Copy the environment sample:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Edit `.env.local`:
+Edit `.env.local` and provide an API key that belongs to the configured
+OpenAI-compatible endpoint:
 
 ```env
-GROQ_API_KEY=your_groq_api_key_here
-AI_API_URL=https://api.groq.com/openai/v1/chat/completions
-AI_MODEL=llama-3.3-70b-versatile
+AI_API_KEY=your_provider_or_9router_api_key_here
+AI_API_URL=https://9router.minhmice.com/v1/chat/completions
+AI_MODEL=coding-rbs
+AI_TIMEOUT_MS=120000
 ```
 
-> Note: If no API key is provided, the Writing module automatically falls back to local heuristic analysis.
+`AI_API_KEY` must be valid for `AI_API_URL`. For a remote 9Router instance,
+create/copy an API key from the 9Router dashboard; an upstream OpenAI/Groq key
+is not automatically a valid 9Router remote-access key. The Writing evaluator
+fails closed when the provider is unavailable and does not return a heuristic
+band as if it were an AI evaluation.
 
 ### 3. Run Development Server
 

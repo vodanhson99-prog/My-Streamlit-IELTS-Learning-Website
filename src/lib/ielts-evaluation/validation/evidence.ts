@@ -88,3 +88,23 @@ export function validateCriterionEvidence(
 
   return { valid: errors.length === 0, errors }
 }
+
+export function sanitizeCriterionEvidence<T extends CriterionEvaluation | Task1CriterionEvaluation>(
+  evaluation: T,
+  essay: string,
+): T {
+  const sanitize = (item: EvaluationEvidence): EvaluationEvidence => {
+    if (item.anchor.type !== "span" || essay.includes(item.anchor.quote)) return item
+    return {
+      anchor: { type: "global" },
+      rationale: `${item.rationale} (Provider quote was not verbatim; retained as global evidence.)`,
+    }
+  }
+
+  return {
+    ...evaluation,
+    supportingEvidence: evaluation.supportingEvidence.map(sanitize),
+    limitingEvidence: evaluation.limitingEvidence.map(sanitize),
+    annotationCandidates: evaluation.annotationCandidates.filter((candidate) => essay.includes(candidate.quote)),
+  } as T
+}

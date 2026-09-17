@@ -1,5 +1,5 @@
 import type { AIProvider } from "../ai/contracts"
-import { AIProviderError, classifyStructuredFailure } from "../ai/provider"
+import { classifyStructuredFailure, formatStructuredFailure } from "../ai/provider"
 import { EVALUATION_SCHEMA_VERSION, IELTS_TASK2_CRITERION_IDS, IELTS_TASK2_RUBRIC_VERSION } from "./constants"
 import type {
   AdjudicationRecord,
@@ -20,7 +20,7 @@ import type { CriterionGrader } from "./graders/shared"
 import { createTaskResponseGrader } from "./graders/task-response"
 import { IELTS_TASK2_RUBRIC } from "./rubric/task2-v2023"
 import { aggregateTask2Bands } from "./scoring/aggregate"
-import { validateCriterionEvidence } from "./validation/evidence"
+import { sanitizeCriterionEvidence, validateCriterionEvidence } from "./validation/evidence"
 
 export interface EvaluateTask2Input {
   readonly task: {
@@ -92,7 +92,7 @@ export async function evaluateTask2(input: EvaluateTask2Input): Promise<Task2Eva
     } catch (firstErr) {
       const kind = classifyStructuredFailure(firstErr)
       const elapsedMs = Date.now() - start
-      const safeMsg = firstErr instanceof AIProviderError ? firstErr.message : "retryable error"
+      const safeMsg = formatStructuredFailure(firstErr)
       console.warn(`[writing-evaluation][task2][${criterionId}][attempt=1] failure=${kind} msg="${safeMsg}" elapsedMs=${elapsedMs}`)
       try {
         const evaluation = await grader(graderInput)
@@ -100,7 +100,7 @@ export async function evaluateTask2(input: EvaluateTask2Input): Promise<Task2Eva
       } catch (retryErr) {
         return {
           success: false,
-          error: `${criterionId} grading failed after retry: ${retryErr instanceof AIProviderError ? retryErr.message : "failed"}`,
+          error: `${criterionId} grading failed after retry: ${formatStructuredFailure(retryErr)}`,
         }
       }
     }
@@ -135,7 +135,9 @@ export async function evaluateTask2(input: EvaluateTask2Input): Promise<Task2Eva
   // 2. Validate evidence against essay text
   const validationErrors: string[] = []
   for (const criterionId of IELTS_TASK2_CRITERION_IDS) {
-    const criterionEval = initialCriteriaMap.get(criterionId)!
+    const criterionEval = input.customGraders
+      ? initialCriteriaMap.get(criterionId)!
+      : sanitizeCriterionEvidence(initialCriteriaMap.get(criterionId)!, essay)
     const validation = validateCriterionEvidence(criterionEval, essay)
     if (!validation.valid) {
       validationErrors.push(...validation.errors)
@@ -155,7 +157,9 @@ export async function evaluateTask2(input: EvaluateTask2Input): Promise<Task2Eva
   const adjudicationRecords: AdjudicationRecord[] = []
 
   for (const criterionId of IELTS_TASK2_CRITERION_IDS) {
-    let criterionEval = initialCriteriaMap.get(criterionId)!
+    let criterionEval = input.customGraders
+      ? initialCriteriaMap.get(criterionId)!
+      : sanitizeCriterionEvidence(initialCriteriaMap.get(criterionId)!, essay)
     const confMeta = input.confidenceScores?.[criterionId]
 
     // Objective reliability signals

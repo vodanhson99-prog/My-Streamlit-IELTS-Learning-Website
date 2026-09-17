@@ -34,10 +34,35 @@ export default function WritingProcessingPage({ params }: PageProps) {
   const [errorInfo, setErrorInfo] = useState<{ message: string; requestId?: string; retryable?: boolean } | null>(null)
   const [isExecuting, setIsExecuting] = useState(false)
 
-  // Protect against double execution per mount
+  // Protect against React Strict Mode remounts and duplicate browser tabs.
+  // A ref only protects one mount; sessionStorage survives the development
+  // remount that otherwise sends the expensive combined evaluation twice.
   const hasInvokedRef = useRef(false)
+  const evaluationLockKey = `writing-evaluation-lock:${slug}`
+
+  const acquireEvaluationLock = () => {
+    try {
+      const existing = sessionStorage.getItem(evaluationLockKey)
+      const startedAt = existing ? Number(existing) : 0
+      if (Number.isFinite(startedAt) && Date.now() - startedAt < 10 * 60 * 1000) return false
+      sessionStorage.setItem(evaluationLockKey, String(Date.now()))
+    } catch {
+      // Storage can be unavailable in privacy-restricted browsers. The local
+      // ref still prevents duplicate calls within the same mounted component.
+    }
+    return true
+  }
+
+  const releaseEvaluationLock = () => {
+    try {
+      sessionStorage.removeItem(evaluationLockKey)
+    } catch {
+      // Ignore storage failures; the lock naturally expires after ten minutes.
+    }
+  }
 
   const runEvaluation = async () => {
+    if (isExecuting || !acquireEvaluationLock()) return
     setErrorInfo(null)
     setIsExecuting(true)
     setCurrentStep("prep")
@@ -49,6 +74,7 @@ export default function WritingProcessingPage({ params }: PageProps) {
         retryable: false,
       })
       setIsExecuting(false)
+      releaseEvaluationLock()
       return
     }
 
@@ -61,6 +87,7 @@ export default function WritingProcessingPage({ params }: PageProps) {
         retryable: false,
       })
       setIsExecuting(false)
+      releaseEvaluationLock()
       return
     }
 
@@ -106,6 +133,7 @@ export default function WritingProcessingPage({ params }: PageProps) {
           retryable: data.retryable ?? true,
         })
         setIsExecuting(false)
+        releaseEvaluationLock()
         return
       }
 
@@ -146,6 +174,7 @@ export default function WritingProcessingPage({ params }: PageProps) {
         retryable: true,
       })
       setIsExecuting(false)
+      releaseEvaluationLock()
     }
   }
 

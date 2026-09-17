@@ -10,6 +10,7 @@ import { AnnotatedEssay } from "./annotated-essay"
 import { AnnotationDetail } from "./annotation-detail"
 import { NextBandBlockers } from "./next-band-blockers"
 import { TutorPanel } from "../tutor/tutor-panel"
+import { EvaluationWarning } from "./evaluation-warning"
 import type { ResolvedAnnotation } from "@/lib/ielts-evaluation/contracts"
 
 interface WritingEvidenceResultProps {
@@ -34,6 +35,26 @@ export function WritingEvidenceResult({
   )
 
   const criteria = details?.evaluation?.criteria || []
+  // The persisted payload can contain a failed evaluator result even though the
+  // success-only TypeScript contract is used by the normal rendering path.
+  // Keep this boundary defensive so a malformed/partial response never crashes
+  // the result page while we still expose a useful retry action.
+  const evaluations: unknown[] = [details?.evaluation, details?.task1?.evaluation, details?.task2?.evaluation]
+  const failedEvaluation = evaluations.some((evaluation) => {
+    if (!evaluation || typeof evaluation !== "object") return false
+    return "error" in evaluation || ("status" in evaluation && evaluation.status === "failed")
+  })
+  const failureMessage = evaluations.find((evaluation) => {
+    if (!evaluation || typeof evaluation !== "object") return false
+    return "error" in evaluation || ("status" in evaluation && evaluation.status === "failed")
+  })
+  const failureText =
+    failureMessage &&
+    typeof failureMessage === "object" &&
+    "error" in failureMessage &&
+    typeof failureMessage.error === "string"
+      ? failureMessage.error
+      : undefined
 
   const handleAskTutor = (annotationId: string) => {
     setFocusedTutorAnnotationId(annotationId)
@@ -71,13 +92,21 @@ export function WritingEvidenceResult({
         </div>
       </div>
 
+      {failedEvaluation && (
+        <EvaluationWarning error={failureText} onRetry={onRetake} />
+      )}
+
       {/* Main Score Overview */}
-      <ScoreOverview
-        taskType={details?.taskType}
-        overallBand={result.band}
-        stability={details?.evaluation?.stability}
-        summary={details?.evaluation?.summary}
-      />
+      {!failedEvaluation && (
+        <ScoreOverview
+          taskType={details?.taskType}
+          overallBand={result.band}
+          task1Band={details?.task1?.evaluation.overallBand}
+          task2Band={details?.task2?.evaluation.overallBand}
+          stability={details?.evaluation?.stability}
+          summary={details?.evaluation?.summary}
+        />
+      )}
 
       {/* Next Band Guidance */}
       {details?.coaching && <NextBandBlockers coaching={details.coaching} />}

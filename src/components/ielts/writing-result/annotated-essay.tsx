@@ -19,9 +19,17 @@ export function AnnotatedEssay({
   // Sort resolved annotations by startOffset
   const validAnnotations = useMemo(() => {
     return annotations
-      .filter((a) => a.status === "resolved" && a.startOffset !== undefined && a.endOffset !== undefined)
+      .filter(
+        (a) =>
+          a.status === "resolved" &&
+          a.startOffset !== undefined &&
+          a.endOffset !== undefined &&
+          a.startOffset >= 0 &&
+          a.endOffset > a.startOffset &&
+          a.endOffset <= essay.length,
+      )
       .sort((a, b) => a.startOffset! - b.startOffset!)
-  }, [annotations])
+  }, [annotations, essay])
 
   // Split essay into plain text segments and highlighted spans
   const segments = useMemo(() => {

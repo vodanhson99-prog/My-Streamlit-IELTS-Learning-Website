@@ -3,6 +3,7 @@ import type { AIProvider, StructuredAiRequest } from "../../ai/contracts"
 import { completeStructured } from "../../ai/provider"
 import { IELTS_BANDS, IELTS_TASK2_RUBRIC_VERSION } from "../constants"
 import type { CriterionEvaluation, IeltsTask2CriterionId, RubricCriterion, Task2Rubric } from "../contracts"
+import { normalizeNextBandBlockers } from "../normalization"
 
 export interface CriterionGraderInput {
   readonly task: {
@@ -87,9 +88,16 @@ export function createCriterionGrader(
     const request: StructuredAiRequest<CriterionEvaluation> = {
       ...prompt,
       temperature: 0.1,
-      maxTokens: 1_200,
+      maxTokens: 3_200,
       schema: resultSchema,
-      parse: (raw) => resultSchema.parse(raw) as CriterionEvaluation,
+      parse: (raw) => {
+        if (!raw || typeof raw !== "object" || Array.isArray(raw)) return resultSchema.parse(raw) as CriterionEvaluation
+        const normalized = raw as Record<string, unknown>
+        return resultSchema.parse({
+          ...normalized,
+          nextBandBlockers: normalizeNextBandBlockers(normalized.nextBandBlockers),
+        }) as CriterionEvaluation
+      },
     }
     return (await completeStructured(provider, request)).data
   }

@@ -1,9 +1,9 @@
 import type { AIProvider } from "../ai/contracts"
-import { classifyStructuredFailure, AIProviderError } from "../ai/provider"
+import { classifyStructuredFailure, formatStructuredFailure } from "../ai/provider"
 import { EVALUATION_SCHEMA_VERSION } from "./constants"
 import type { EvaluationStability, IeltsHalfBand } from "./contracts"
 import { calculateIeltsHalfBand } from "./scoring/aggregate"
-import { validateCriterionEvidence } from "./validation/evidence"
+import { sanitizeCriterionEvidence, validateCriterionEvidence } from "./validation/evidence"
 import {
   IELTS_TASK1_CRITERION_IDS,
   type IeltsTask1CriterionId,
@@ -77,7 +77,7 @@ export async function evaluateTask1(input: EvaluateTask1Input): Promise<Task1Eva
       } catch (firstErr) {
         const kind = classifyStructuredFailure(firstErr)
         const elapsedMs = Date.now() - start
-        const safeMsg = firstErr instanceof AIProviderError ? firstErr.message : "retryable error"
+        const safeMsg = formatStructuredFailure(firstErr)
         console.warn(`[writing-evaluation][task1][${id}][attempt=1] failure=${kind} msg="${safeMsg}" elapsedMs=${elapsedMs}`)
         try {
           const evaluation = await graders[id](graderInput)
@@ -86,7 +86,7 @@ export async function evaluateTask1(input: EvaluateTask1Input): Promise<Task1Eva
           return {
             id,
             success: false as const,
-            error: retryErr instanceof AIProviderError ? retryErr.message : "failed",
+            error: formatStructuredFailure(retryErr),
           }
         }
       }
@@ -103,7 +103,10 @@ export async function evaluateTask1(input: EvaluateTask1Input): Promise<Task1Eva
     }
   }
 
-  const criteria = results.map((r) => (r as { evaluation: Task1CriterionEvaluation }).evaluation)
+  const criteria = results.map((r) => {
+    const evaluation = (r as { evaluation: Task1CriterionEvaluation }).evaluation
+    return input.customGraders ? evaluation : sanitizeCriterionEvidence(evaluation, essay)
+  })
 
   // Validate evidence anchors and annotation quotes against essay
   for (const c of criteria) {

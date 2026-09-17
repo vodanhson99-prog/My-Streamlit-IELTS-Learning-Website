@@ -4,6 +4,8 @@ import { Sparkles, ShieldCheck, AlertCircle } from "lucide-react"
 interface ScoreOverviewProps {
   taskType?: "task1" | "task2" | "both"
   overallBand: number
+  task1Band?: number
+  task2Band?: number
   stability?: "high" | "medium" | "low"
   summary?: string
 }
@@ -11,6 +13,8 @@ interface ScoreOverviewProps {
 export function ScoreOverview({
   taskType = "both",
   overallBand,
+  task1Band,
+  task2Band,
   stability = "high",
   summary,
 }: ScoreOverviewProps) {
@@ -21,7 +25,7 @@ export function ScoreOverview({
       <div className="flex items-center justify-between">
         <div>
           <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block">
-            Official Evaluation Metric
+            Estimated Writing Evaluation
           </span>
           <h2 className="text-sm font-semibold text-foreground mt-0.5">
             Estimated {taskLabel} Band
@@ -46,7 +50,14 @@ export function ScoreOverview({
             Band {overallBand.toFixed(1)}
           </div>
           <p className="text-xs text-muted-foreground mt-1 max-w-lg leading-relaxed">
-            {summary || `Deterministic score based on 4 official IELTS ${taskLabel} criteria.`}
+            {summary || `Estimated score based on four IELTS ${taskLabel} criteria.`}
+            {taskType === "both" && (task1Band !== undefined || task2Band !== undefined) && (
+              <span className="block mt-1">
+                {task1Band !== undefined && `Estimated Task 1 Band ${task1Band.toFixed(1)}`}
+                {task1Band !== undefined && task2Band !== undefined && " · "}
+                {task2Band !== undefined && `Estimated Task 2 Band ${task2Band.toFixed(1)}`}
+              </span>
+            )}
           </p>
         </div>
         <div className="size-9 rounded-[2px] bg-background border border-border flex items-center justify-center shrink-0">

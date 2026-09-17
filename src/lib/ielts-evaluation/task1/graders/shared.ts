@@ -4,6 +4,7 @@ import { completeStructured } from "../../../ai/provider"
 import { IELTS_BANDS } from "../../constants"
 import { wrapUntrustedContent } from "../../prompts/shared"
 import type { EvaluationEvidence } from "../../contracts"
+import { normalizeNextBandBlockers } from "../../normalization"
 import type {
   IeltsTask1CriterionId,
   Task1CriterionEvaluation,
@@ -108,7 +109,12 @@ function normalizeTask1Output(
   }
 
   const hasNewEvidenceShape = Array.isArray(nested.supportingEvidence) || Array.isArray(nested.limitingEvidence) || "nextBandBlockers" in nested
-  if (hasNewEvidenceShape) return raw
+  if (hasNewEvidenceShape) {
+    return {
+      ...nested,
+      nextBandBlockers: normalizeNextBandBlockers(nested.nextBandBlockers),
+    }
+  }
 
   const rawLegacyEvidence = Array.isArray(nested.evidence) ? nested.evidence : []
   const mappedLegacyEvidence = rawLegacyEvidence.map((item) => {
@@ -126,7 +132,7 @@ function normalizeTask1Output(
     .filter((item) => typeof item.raw === "object" && item.raw !== null && (item.raw as Record<string, unknown>).type === "negative")
     .map((item) => item.normalized)
 
-  const rawBlockers = nested.blockers
+  const rawBlockers = normalizeNextBandBlockers(nested.blockers)
   if (rawBlockers !== undefined && (!Array.isArray(rawBlockers) || rawBlockers.some((item) => typeof item !== "string" || !item.trim()))) return raw
   const nextBandBlockers = Array.isArray(rawBlockers) ? rawBlockers.map((item) => item.trim()) : []
 
@@ -189,7 +195,7 @@ ${wrapUntrustedContent("ESSAY_DATA", input.essay)}`
       system: systemPrompt,
       user: userPrompt,
       temperature: 0.1,
-      maxTokens: 1_000,
+      maxTokens: 3_200,
       schema: resultSchema,
       parse: (raw) => resultSchema.parse(normalizeTask1Output(raw, criterionId, input.rubric)) as Task1CriterionEvaluation,
     }

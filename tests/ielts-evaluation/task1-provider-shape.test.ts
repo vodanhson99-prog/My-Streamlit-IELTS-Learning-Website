@@ -113,7 +113,7 @@ describe("Task 1 provider output contract", () => {
     ).rejects.toThrow()
   })
 
-  it("rejects object-shaped next-band blockers instead of stringifying or silently dropping them", async () => {
+  it("normalizes object-shaped next-band blockers returned by compatible providers", async () => {
     const provider: AIProvider = {
       complete: async () => ({
         text: JSON.stringify({
@@ -130,7 +130,29 @@ describe("Task 1 provider output contract", () => {
         essay,
         rubric: IELTS_TASK1_ACADEMIC_RUBRIC,
       }),
-    ).rejects.toThrow()
+    ).resolves.toMatchObject({
+      nextBandBlockers: ["Valid string", "More precise comparisons are needed."],
+    })
+  })
+
+  it("normalizes blocker objects with provider-specific keys", async () => {
+    const provider: AIProvider = {
+      complete: async () => ({
+        text: JSON.stringify({
+          ...response,
+          nextBandBlockers: [{ limitation: "Comparisons are brief", improvement: "Add quantified detail." }],
+        }),
+        provider: "openai-compatible",
+      }),
+    }
+
+    await expect(createTask1CriterionGrader(provider, "task-achievement")({
+      task: { testType: "academic", prompt: "Describe chart" },
+      essay,
+      rubric: IELTS_TASK1_ACADEMIC_RUBRIC,
+    })).resolves.toMatchObject({
+      nextBandBlockers: ["Comparisons are brief — Add quantified detail."],
+    })
   })
 
   it("accepts paragraph and global evidence without requiring quote lookup", async () => {

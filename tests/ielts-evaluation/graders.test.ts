@@ -97,16 +97,23 @@ describe("grader validation", () => {
     await expect(grader({ task, essay, rubric: IELTS_TASK2_RUBRIC })).rejects.toThrow()
   })
 
-  it("rejects unsupported anchor types and malformed blocker objects", async () => {
+  it("rejects unsupported anchor types", async () => {
     const output = outputFor("task-response", "prompt_coverage")
     output.supportingEvidence = [{ anchor: { type: "positive", quote: "Cars offer flexibility" }, rationale: "..." } as any]
     const grader = createTaskResponseGrader(providerReturning(output))
     await expect(grader({ task, essay, rubric: IELTS_TASK2_RUBRIC })).rejects.toThrow()
 
-    const output2 = outputFor("task-response", "prompt_coverage")
-    output2.nextBandBlockers = [{ reason: "Needs more vocabulary" } as any]
-    const grader2 = createTaskResponseGrader(providerReturning(output2))
-    await expect(grader2({ task, essay, rubric: IELTS_TASK2_RUBRIC })).rejects.toThrow()
+  })
+
+  it("normalizes object-shaped next-band blockers returned by compatible providers", async () => {
+    const output = outputFor("task-response", "prompt_coverage")
+    output.nextBandBlockers = [
+      { issue: "Ideas are underdeveloped", action: "Add a specific example." } as any,
+    ]
+    const grader = createTaskResponseGrader(providerReturning(output))
+    await expect(grader({ task, essay, rubric: IELTS_TASK2_RUBRIC })).resolves.toMatchObject({
+      nextBandBlockers: ["Ideas are underdeveloped — Add a specific example."],
+    })
   })
 
   it("rejects missing limiting evidence and blockers below Band 9", async () => {
