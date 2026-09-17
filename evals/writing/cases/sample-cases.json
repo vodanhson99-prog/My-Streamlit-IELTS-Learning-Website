@@ -1,0 +1,16 @@
+[
+  {
+    "id": "task2-sample-6-0",
+    "taskType": "task2",
+    "testType": "academic",
+    "dataset": {
+      "category": "regression",
+      "source": "curated-local-sample"
+    },
+    "prompt": "Some people think that universities should provide graduates with the knowledge and skills needed in the workplace. Others think that the true function of a university should be to give access to knowledge for its own sake, regardless of whether the course is useful to an employer. Discuss both views and give your opinion.",
+    "essay": "In today's modern world, education plays an indispensable role in developing human society. While some people believe universities ought to concentrate on job market preparation, others advocate for acquiring knowledge purely for personal enlightenment. In this essay, both arguments will be analyzed.\n\nOn the one hand, practical training equips students with crucial career skills. In competitive industries like software engineering and business administration, employers seek candidates with immediate hands-on competencies. If tertiary curricula neglect realistic workplace skills, young graduates may struggle to find employment.\n\nOn the other hand, theoretical inquiry fosters intellectual innovation. Universities have traditionally been places of discovery, philosophical contemplation, and fundamental scientific research. Without deep exploration of abstract disciplines such as mathematics or theoretical physics, society would lack radical breakthroughs.\n\nIn conclusion, I believe universities must achieve a balanced approach by combining rigorous theoretical comprehension with applicable practical skills.",
+    "groundTruth": {
+      "overallBand": 6.5
+    }
+  }
+]

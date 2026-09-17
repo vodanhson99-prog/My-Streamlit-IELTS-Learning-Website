@@ -1,0 +1,162 @@
+[
+  {
+    "id": "t1-acad-chart-band5",
+    "taskType": "task1",
+    "testType": "academic",
+    "dataset": {
+      "category": "regression",
+      "source": "curated-local-smoke-corpus"
+    },
+    "promptFamily": "chart",
+    "controlTag": "smoke-band-5.0",
+    "prompt": "The bar chart shows the percentage of households in different income brackets owning electric vehicles between 2015 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "essay": "The chart illustrates how many household in various income level have electric cars from 2015 to 2020. Overall it can be seen high income group have more cars than low income group throughout the time.\n\nIn 2015, the percentage of electric vehicles for rich people was about 15% and it rose to 35% in 2020. Meanwhile middle income group was 8% in 2015 and became 18% in 2020. Low income family had very little cars, only 2% in 2015 and 5% in 2020.\n\nTo compare, high income is biggest group and low income is lowest. There are some increase in all categories but difference between rich and poor is very clear.",
+    "groundTruth": {
+      "overallBand": 5.0,
+      "taskAchievementOrResponse": 5.0,
+      "coherenceAndCohesion": 5.0,
+      "lexicalResource": 5.0,
+      "grammaticalRangeAndAccuracy": 5.0
+    }
+  },
+  {
+    "id": "t1-acad-chart-band6-5",
+    "taskType": "task1",
+    "testType": "academic",
+    "dataset": {
+      "category": "regression",
+      "source": "curated-local-smoke-corpus"
+    },
+    "promptFamily": "chart",
+    "controlTag": "smoke-band-6.5",
+    "prompt": "The bar chart shows the percentage of households in different income brackets owning electric vehicles between 2015 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "essay": "The bar chart details the proportion of households across three income categories that owned electric vehicles from 2015 to 2020.\n\nOverall, electric vehicle ownership experienced an upward trend in every income bracket over the five-year period. Households in the highest income tier consistently represented the largest share of EV owners, whereas low-income families accounted for the lowest figures throughout.\n\nIn 2015, approximately 15% of high-income households owned an electric car. This figure rose substantially to peak at 35% by 2020, representing the most significant absolute gain. In contrast, middle-income ownership began at 8% and demonstrated steady growth, more than doubling to reach 18% by the end of the timeframe.\n\nTurning to the low-income bracket, adoption remained noticeably modest. Starting at just 2% in 2015, EV ownership crawled up to 5% in 2020, widening the ownership gap when compared to higher earners.",
+    "groundTruth": {
+      "overallBand": 6.5,
+      "taskAchievementOrResponse": 7.0,
+      "coherenceAndCohesion": 6.5,
+      "lexicalResource": 6.5,
+      "grammaticalRangeAndAccuracy": 6.5
+    }
+  },
+  {
+    "id": "t1-acad-chart-band8",
+    "taskType": "task1",
+    "testType": "academic",
+    "dataset": {
+      "category": "regression",
+      "source": "curated-local-smoke-corpus"
+    },
+    "promptFamily": "chart",
+    "controlTag": "smoke-band-8.0",
+    "prompt": "The bar chart shows the percentage of households in different income brackets owning electric vehicles between 2015 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "essay": "The bar chart illustrates the proportion of households possessing electric vehicles (EVs) across three distinct income segments over a five-year timeframe starting in 2015.\n\nOverall, EV adoption expanded across all socioeconomic tiers, though disparities became increasingly pronounced. High-income households maintained an overwhelming lead throughout the period, registering both the greatest baseline and the steepest trajectory of growth.\n\nAt the beginning of the period, 15% of affluent households possessed an electric vehicle. This proportion climbed steadily to reach 35% in 2020, representing an increase of twenty percentage points. Concurrently, moderate-income households demonstrated a comparable upward trajectory, rising from 8% in 2015 to 18% in 2020, effectively more than doubling their initial rate.\n\nConversely, uptake among low-income households remained marginal. Having stood at a negligible 2% in 2015, it advanced incrementally to 5% by 2020. Consequently, while clean transportation became mainstream among affluent demographics, a persistent economic barrier continued to restrict participation among lower-earning households.",
+    "groundTruth": {
+      "overallBand": 8.0,
+      "taskAchievementOrResponse": 8.0,
+      "coherenceAndCohesion": 8.0,
+      "lexicalResource": 8.0,
+      "grammaticalRangeAndAccuracy": 8.0
+    }
+  },
+  {
+    "id": "t1-gt-letter-band5",
+    "taskType": "task1",
+    "testType": "general_training",
+    "dataset": {
+      "category": "regression",
+      "source": "curated-local-smoke-corpus"
+    },
+    "promptFamily": "letter",
+    "controlTag": "smoke-band-5.0",
+    "prompt": "You recently stayed at a hotel and left an important item in the room. Write a letter to the hotel manager. In your letter: explain what you left behind, describe where you think it is, and explain what you want the manager to do.",
+    "essay": "Dear Hotel Manager,\n\nI am writing to tell you that I lost my watch in your hotel yesterday. I was staying in room 204 from Monday to Wednesday.\n\nThe watch is black color and it is very expensive because my father give it to me. I think I leave it near the bedside table or maybe inside the bathroom drawer when I wash my hands before leave the room in morning.\n\nPlease check my room quickly and find it. If you find my watch please call my phone number immediately or send it by post to my address. I will pay for the post.\n\nThank you very much,\nJohn Smith",
+    "groundTruth": {
+      "overallBand": 5.0,
+      "taskAchievementOrResponse": 5.0,
+      "coherenceAndCohesion": 5.0,
+      "lexicalResource": 5.0,
+      "grammaticalRangeAndAccuracy": 5.0
+    }
+  },
+  {
+    "id": "t1-gt-letter-band7",
+    "taskType": "task1",
+    "testType": "general_training",
+    "dataset": {
+      "category": "regression",
+      "source": "curated-local-smoke-corpus"
+    },
+    "promptFamily": "letter",
+    "controlTag": "smoke-band-7.0",
+    "prompt": "You recently stayed at a hotel and left an important item in the room. Write a letter to the hotel manager. In your letter: explain what you left behind, describe where you think it is, and explain what you want the manager to do.",
+    "essay": "Dear Sir or Madam,\n\nI am writing to request your assistance regarding an item of considerable personal value that I inadvertently left behind during my recent stay at your hotel. I was registered in Room 312 from September 10th to September 12th under the name of Mark Henderson.\n\nThe missing item is a silver wristwatch with an engraved leather strap bearing my initials. To the best of my recollection, I removed the watch on the morning of my departure and placed it either inside the top drawer of the bedside nightstand or adjacent to the bathroom vanity.\n\nI would be immensely grateful if you could arrange for housekeeping staff to inspect Room 312 thoroughly. Should the watch be retrieved, please inform me via phone or email at your earliest convenience. I am more than willing to cover all courier expenses required to dispatch the parcel to my residential address.\n\nThank you for your attention to this matter.\n\nYours faithfully,\nMark Henderson",
+    "groundTruth": {
+      "overallBand": 7.0,
+      "taskAchievementOrResponse": 7.5,
+      "coherenceAndCohesion": 7.0,
+      "lexicalResource": 7.0,
+      "grammaticalRangeAndAccuracy": 7.0
+    }
+  },
+  {
+    "id": "t2-acad-opinion-band5-5",
+    "taskType": "task2",
+    "testType": "academic",
+    "dataset": {
+      "category": "regression",
+      "source": "curated-local-smoke-corpus"
+    },
+    "promptFamily": "opinion",
+    "controlTag": "smoke-boundary-5.5",
+    "prompt": "Some people believe that unpaid community service should be a compulsory part of high school programmes. To what extent do you agree or disagree?",
+    "essay": "Nowadays many people argue that high school students should do unpaid community service as part of their school curriculum. In my opinion, I partly agree with this statement because it has both good points and bad points for young pupils.\n\nOn the one hand, community work help students learn good character. When teenagers help elderly people or clean local parks, they understand society better and become responsible citizens. Moreover, doing volunteering can give them practical experience which will be useful for their future job applications.\n\nOn the other hand, students already have too much pressure from examinations. They must study many subjects like mathematics and history every day. If schools force them to do unpaid community work, they will not have enough time to relax or prepare for university entrance tests. Furthermore, forced service does not make true goodwill because pupils might do it only to finish requirements.\n\nIn conclusion, although unpaid community work gives valuable life lessons, making it compulsory could cause heavy burden on students. Therefore, schools should encourage it as optional rather than mandatory.",
+    "groundTruth": {
+      "overallBand": 5.5,
+      "taskAchievementOrResponse": 6.0,
+      "coherenceAndCohesion": 5.5,
+      "lexicalResource": 5.5,
+      "grammaticalRangeAndAccuracy": 5.5
+    }
+  },
+  {
+    "id": "t2-acad-opinion-band6-0",
+    "taskType": "task2",
+    "testType": "academic",
+    "dataset": {
+      "category": "regression",
+      "source": "curated-local-smoke-corpus"
+    },
+    "promptFamily": "opinion",
+    "controlTag": "smoke-boundary-6.0",
+    "prompt": "Some people believe that unpaid community service should be a compulsory part of high school programmes. To what extent do you agree or disagree?",
+    "essay": "In recent years, the question of whether voluntary community service ought to be made mandatory for secondary school students has sparked considerable debate. While some argue that such initiatives foster social responsibility, I largely disagree with making this requirement compulsory due to academic strain and counterproductive outcomes.\n\nProponents of obligatory service suggest that engaging with the community instils essential civic values. By participating in local conservation efforts or assisting vulnerable groups in nursing homes, teenagers cultivate empathy and teamwork skills. Such experiences undoubtedly broaden their perspective beyond classroom textbooks and prepare them for adult life.\n\nHowever, compelling students to participate overlooks their already rigorous academic schedules. Adolescents routinely face intense pressure from homework and standardized testing. Mandating community service would inevitably deplete time otherwise spent on academic mastery and personal wellbeing. More importantly, when voluntary acts become enforced obligations, the genuine spirit of altruism is undermined, potentially breeding resentment among learners.\n\nIn conclusion, while community participation provides valuable social development, it should remain voluntary rather than mandated so students can engage meaningfully without undue academic stress.",
+    "groundTruth": {
+      "overallBand": 6.0,
+      "taskAchievementOrResponse": 6.0,
+      "coherenceAndCohesion": 6.0,
+      "lexicalResource": 6.0,
+      "grammaticalRangeAndAccuracy": 6.0
+    }
+  },
+  {
+    "id": "t2-acad-opinion-band7-5",
+    "taskType": "task2",
+    "testType": "academic",
+    "dataset": {
+      "category": "regression",
+      "source": "curated-local-smoke-corpus"
+    },
+    "promptFamily": "opinion",
+    "controlTag": "smoke-band-7.5",
+    "prompt": "Some people believe that unpaid community service should be a compulsory part of high school programmes. To what extent do you agree or disagree?",
+    "essay": "The proposition to mandate unpaid community service within secondary school curricula reflects a growing desire to cultivate socially conscious citizens. While I acknowledge the developmental merits of civic participation, I firmly contend that institutional compulsion distorts the very essence of volunteering and exacerbates existing adolescent stress.\n\nAdmittedly, structured involvement in community projects offers tangible pedagogical benefits. Exposure to underprivileged communities or environmental conservation initiatives fosters empathy, civic awareness, and interpersonal aptitude—attributes rarely stimulated within conventional academic silos. Furthermore, hands-on collaboration enables adolescents to synthesize abstract ethical principles with concrete social realities, enhancing personal maturity.\n\nNonetheless, enshrining such activities as mandatory obligations presents critical dilemmas. High school students navigate increasingly rigorous academic regimes and extracurricular commitments designed to secure tertiary admissions. Imposing compulsory service risks precipitating burnout by encroaching upon crucial rest and self-directed study. More crucially, coercive altruism is philosophically paradoxical; when service becomes a graduation requisite rather than an autonomous moral choice, it fosters superficial compliance and resentment rather than enduring philanthropic values.\n\nIn conclusion, while civic contribution should be enthusiastically championed and incentivized through school recognition, transforming it into an involuntary prerequisite is misguided and counterproductive.",
+    "groundTruth": {
+      "overallBand": 7.5,
+      "taskAchievementOrResponse": 7.5,
+      "coherenceAndCohesion": 7.5,
+      "lexicalResource": 7.5,
+      "grammaticalRangeAndAccuracy": 7.5
+    }
+  }
+]

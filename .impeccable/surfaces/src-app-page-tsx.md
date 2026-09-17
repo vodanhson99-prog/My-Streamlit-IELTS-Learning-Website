@@ -1,0 +1,24 @@
+---
+version: 1
+slug: "src-app-page-tsx"
+primary_target: "src/app/page.tsx"
+related_targets: []
+---
+
+# Homepage
+
+Mode: Operate. Audience: self-directed IELTS learners opening the app to begin a practice session. Primary task: choose Listening, Reading, or Writing quickly. Keep current functions and copy. Avoid busy or gamified treatment.
+
+## Direction contract
+
+THESIS: A one-page study sheet makes practice choice the dominant task and refuses the generic dashboard sequence of hero, chart, and equal cards.
+
+OWN-WORLD: Paper-white field, black ruled structure, condensed headings, quiet mono measurements, and full-width task rows instead of floating cards.
+
+STORY: Orient to the workspace, choose practice, then inspect activity or use review tools.
+
+FIRST VIEWPORT: Title and compact score register share top band; practice sheet fills main width beneath, with Reading carrying primary action emphasis. One ruled-row transition marks selection intent.
+
+FORM: Study sheet, fifth grounded direction, seed d07cf372.
+
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.

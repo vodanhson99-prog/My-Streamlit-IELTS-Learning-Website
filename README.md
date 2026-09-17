@@ -1,63 +1,63 @@
-# My HTML + Tailwind IELTS Learning Website
+# ielts with rbs — Modern Next.js Dashboard
 
-IELTS practice website built with native HTML, Tailwind CSS, and a small Python standard-library HTTP server.
+Modern IELTS preparation platform built with **Next.js (App Router)**, **TypeScript**, **Tailwind CSS v4**, and **shadcn/ui**.
 
 ## Features
 
-- Bento-style dashboard in existing forest-green palette
-- Reading practice with instant scoring
-- Writing practice with local heuristic feedback or server-side AI feedback
-- IELTS criterion coaching and progress charts
-- AI-powered Explain Bot
-- Responsive desktop sidebar and mobile bottom navigation
-- Keyboard focus states, skip link, accessible labels, and reduced-motion support
+- **Personalized Coach & Dashboard:** Actionable diagnostics based on practice trends.
+- **Reading Practice:** Authentic IELTS academic passages with instant scoring and explanation support.
+- **Writing Studio:** Real-time word tracking, heuristic evaluation, and AI-powered band scoring across 4 official IELTS criteria.
+- **Explain Bot:** On-demand AI tutor to clarify incorrect reading/listening options.
+- **Local Persistence:** Zero-friction client storage via `localStorage` with data reset support.
 
-## Requirements
+## Getting Started
 
-- Python 3.9+
-- Server-side AI API key optional; required for AI features
+### Prerequisites
 
-## Run locally on Windows
+- Node.js 18.17+ or 20+
+- pnpm 9+
 
-1. Create and activate `.venv`:
+### 1. Install Dependencies
 
-```powershell
-.\venv.ps1
+```bash
+pnpm install
 ```
 
-If PowerShell blocks local scripts:
+### 2. Configure Environment (Required for AI Writing Evaluation)
 
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\venv.ps1
+Copy the environment sample:
+
+```bash
+cp .env.example .env.local
 ```
 
-2. Install dependencies:
+Edit `.env.local` and provide an API key that belongs to the configured
+OpenAI-compatible endpoint:
 
-```powershell
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+```env
+AI_API_KEY=your_provider_or_9router_api_key_here
+AI_API_URL=https://9router.minhmice.com/v1/chat/completions
+AI_MODEL=coding-rbs
+AI_TIMEOUT_MS=120000
 ```
 
-3. Optional: create `.env` for server-side AI features:
+`AI_API_KEY` must be valid for `AI_API_URL`. For a remote 9Router instance,
+create/copy an API key from the 9Router dashboard; an upstream OpenAI/Groq key
+is not automatically a valid 9Router remote-access key. The Writing evaluator
+fails closed when the provider is unavailable and does not return a heuristic
+band as if it were an AI evaluation.
 
-```dotenv
-GROQ_API_KEY=your_groq_api_key
-AI_API_URL=https://api.groq.com/openai/v1/chat/completions
-AI_MODEL=your_server_side_model_name
+### 3. Run Development Server
+
+```bash
+pnpm dev
 ```
 
-4. Start web server:
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-```powershell
-python website.py
+### 4. Build for Production
+
+```bash
+pnpm build
+pnpm start
 ```
-
-5. Open http://localhost:8501
-
-## Notes
-
-- Tailwind loads from `https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4` during development.
-- Progress stays in local `ielts_progress.json`.
-- AI provider, model, and API key stay server-side through `.env`.
-- `website.py` serves HTML and JSON API routes. No Streamlit dependency remains.
